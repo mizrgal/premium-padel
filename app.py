@@ -145,11 +145,11 @@ def get_tournament(tid):
     return rows[0] if rows else None
 
 
-def create_tournament(name, date, level, pairs_count, game_target, created_by,
+def create_tournament(name, date, level, pairs_count, groups_count, game_target, created_by,
                        price_per_player=None, about=None, manager=None, location=None):
     return db_insert("padel_tournaments", {
         "name": name, "date": date, "level": level,
-        "pairs_count": pairs_count, "groups_count": engine.groups_count_for_pairs(pairs_count),
+        "pairs_count": pairs_count, "groups_count": groups_count,
         "game_target": game_target, "status": "open", "created_by": created_by,
         "price_per_player": price_per_player, "about": about,
         "manager": manager, "location": location,
@@ -257,7 +257,7 @@ def maybe_run_draw(tournament):
     if len(pairs) < tournament["pairs_count"]:
         return
     pair_ids = [p["id"] for p in pairs]
-    assignments, matches = engine.run_draw(pair_ids)
+    assignments, matches = engine.run_draw(pair_ids, tournament["groups_count"])
     for pid, group_number in assignments.items():
         update_pair_group(pid, group_number)
     create_matches([
@@ -699,6 +699,18 @@ def parse_price(raw):
     return price, None
 
 
+# pairs_count select value -> (pairs_count, groups_count). 8 pairs has two layouts (2 groups
+# of 4, or a single round-robin group of 8), so pairs_count alone can't tell them apart.
+TOURNAMENT_FORMATS = {
+    "4": (4, 1),
+    "6": (6, 1),
+    "8": (8, 2),
+    "8-1": (8, 1),
+    "12": (12, 4),
+    "16": (16, 4),
+}
+
+
 @app.route("/tournaments/new", methods=["GET", "POST"])
 @admin_required
 def tournament_new():
@@ -706,7 +718,7 @@ def tournament_new():
         name = request.form.get("name", "").strip()
         date = request.form.get("date", "").strip()
         level = request.form.get("level", "").strip()
-        pairs_count = request.form.get("pairs_count", "")
+        format_key = request.form.get("pairs_count", "")
         game_target = request.form.get("game_target", "")
         about = request.form.get("about", "").strip() or None
         manager = request.form.get("manager", "").strip() or None
@@ -714,14 +726,15 @@ def tournament_new():
         price, price_error = parse_price(request.form.get("price_per_player", ""))
         if not name or not date or not level:
             flash("נא למלא את כל השדות", "error")
-        elif pairs_count not in ("4", "8", "12", "16"):
+        elif format_key not in TOURNAMENT_FORMATS:
             flash("יש לבחור כמות זוגות תקינה", "error")
         elif game_target not in ("4", "6", "8"):
             flash("יש לבחור משך משחק תקין", "error")
         elif price_error:
             flash(price_error, "error")
         else:
-            t = create_tournament(name, date, level, int(pairs_count), int(game_target),
+            pairs_count, groups_count = TOURNAMENT_FORMATS[format_key]
+            t = create_tournament(name, date, level, pairs_count, groups_count, int(game_target),
                                    session["user_id"], price_per_player=price, about=about,
                                    manager=manager, location=location)
             return redirect(url_for("tournament_detail", tid=t["id"]))
@@ -755,20 +768,21 @@ def tournament_edit(tid):
                    "about": about, "manager": manager, "location": location}
 
         if tournament["status"] == "open":
-            pairs_count = request.form.get("pairs_count", "")
+            format_key = request.form.get("pairs_count", "")
             game_target = request.form.get("game_target", "")
-            if pairs_count not in ("4", "8", "12", "16"):
+            if format_key not in TOURNAMENT_FORMATS:
                 flash("יש לבחור כמות זוגות תקינה", "error")
                 return render_template("tournament_edit.html", tournament=tournament)
             if game_target not in ("4", "6", "8"):
                 flash("יש לבחור משך משחק תקין", "error")
                 return render_template("tournament_edit.html", tournament=tournament)
+            pairs_count, groups_count = TOURNAMENT_FORMATS[format_key]
             current_pairs = len(list_pairs(tid))
-            if int(pairs_count) < current_pairs:
+            if pairs_count < current_pairs:
                 flash(f"אי אפשר להקטין את כמות הזוגות מתחת ל-{current_pairs} (כבר רשומים)", "error")
                 return render_template("tournament_edit.html", tournament=tournament)
-            updates["pairs_count"] = int(pairs_count)
-            updates["groups_count"] = engine.groups_count_for_pairs(int(pairs_count))
+            updates["pairs_count"] = pairs_count
+            updates["groups_count"] = groups_count
             updates["game_target"] = int(game_target)
 
         update_tournament(tid, updates)
@@ -916,7 +930,7 @@ def tournament_detail(tid):
             if len(completed) == len(group_matches) and group_matches:
                 for bucket in engine.find_stat_ties(group_pair_ids, stats):
                     resolved = any(
-                        frozenset((a, b)) in tiebreak_winners
+                        engine.head_to_head_winner(a, b, completed) or frozenset((a, b)) in tiebreak_winners
                         for a in bucket for b in bucket if a != b
                     )
                     if not resolved:

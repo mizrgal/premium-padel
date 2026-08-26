@@ -28,7 +28,9 @@
         <label>כמות זוגות</label>
         <select name="pairs_count" required>
           <option value="4" {% if tournament.pairs_count == 4 %}selected{% endif %}>4 זוגות (בית אחד)</option>
-          <option value="8" {% if tournament.pairs_count == 8 %}selected{% endif %}>8 זוגות (2 בתים)</option>
+          <option value="6" {% if tournament.pairs_count == 6 %}selected{% endif %}>6 זוגות (בית אחד)</option>
+          <option value="8" {% if tournament.pairs_count == 8 and tournament.groups_count == 2 %}selected{% endif %}>8 זוגות (2 בתים)</option>
+          <option value="8-1" {% if tournament.pairs_count == 8 and tournament.groups_count == 1 %}selected{% endif %}>8 זוגות (בית אחד)</option>
           <option value="12" {% if tournament.pairs_count == 12 %}selected{% endif %}>12 זוגות (4 בתים של 3)</option>
           <option value="16" {% if tournament.pairs_count == 16 %}selected{% endif %}>16 זוגות (4 בתים)</option>
         </select>

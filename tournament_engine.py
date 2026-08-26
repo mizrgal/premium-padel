@@ -10,9 +10,28 @@ GROUP_ROUNDS = [1, 1, 2, 2, 3, 3]
 TRIO_ROUND_ORDER = [(0, 1), (0, 2), (1, 2)]
 TRIO_ROUNDS = [1, 2, 3]
 
-# pairs_count -> groups_count. 12 pairs is 4 groups of 3 (not 4 groups of 4), everything
+
+def _circle_method_schedule(n):
+    """Round-robin schedule for n (even) pair-indices via the circle method: n-1 rounds,
+    n/2 matches per round, with no pair playing twice in the same round."""
+    fixed, rotating = 0, list(range(1, n))
+    order, rounds = [], []
+    for round_no in range(1, n):
+        ring = [fixed] + rotating
+        for i in range(n // 2):
+            order.append((ring[i], ring[n - 1 - i]))
+            rounds.append(round_no)
+        rotating = [rotating[-1]] + rotating[:-1]
+    return order, rounds
+
+
+SIX_ROUND_ORDER, SIX_ROUNDS = _circle_method_schedule(6)
+EIGHT_ROUND_ORDER, EIGHT_ROUNDS = _circle_method_schedule(8)
+
+# pairs_count -> default groups_count. 12 pairs is 4 groups of 3, 8 defaults to 2 groups of 4
+# (a single group of 8 is requested explicitly via run_draw's groups_count argument), everything
 # else divides evenly into groups of 4.
-GROUPS_COUNT_BY_PAIRS = {4: 1, 8: 2, 12: 4, 16: 4}
+GROUPS_COUNT_BY_PAIRS = {4: 1, 6: 1, 8: 2, 12: 4, 16: 4}
 
 
 def groups_count_for_pairs(pairs_count):
@@ -22,29 +41,39 @@ def groups_count_for_pairs(pairs_count):
 
 
 def round_robin_matches(pair_ids):
-    """3 or 4 pair ids -> (round_number, pair_a_id, pair_b_id) tuples for a full round robin
-    (every pair plays every other pair in the group exactly once)."""
-    if len(pair_ids) == 4:
+    """3, 4, 6, or 8 pair ids -> (round_number, pair_a_id, pair_b_id) tuples for a full round
+    robin (every pair plays every other pair in the group exactly once)."""
+    n = len(pair_ids)
+    if n == 4:
         order, rounds = GROUP_ROUND_ORDER, GROUP_ROUNDS
-    elif len(pair_ids) == 3:
+    elif n == 3:
         order, rounds = TRIO_ROUND_ORDER, TRIO_ROUNDS
+    elif n == 6:
+        order, rounds = SIX_ROUND_ORDER, SIX_ROUNDS
+    elif n == 8:
+        order, rounds = EIGHT_ROUND_ORDER, EIGHT_ROUNDS
     else:
-        raise ValueError("groups must have exactly 3 or 4 pairs")
+        raise ValueError("groups must have exactly 3, 4, 6, or 8 pairs")
     return [
         (round_no, pair_ids[a], pair_ids[b])
         for (a, b), round_no in zip(order, rounds)
     ]
 
 
-def run_draw(pair_ids):
+def run_draw(pair_ids, groups_count=None):
     """Shuffle pairs, assign group numbers, generate all group-stage matches.
+
+    groups_count defaults to the standard layout for len(pair_ids) (see
+    GROUPS_COUNT_BY_PAIRS), but can be passed explicitly to pick a non-default layout
+    (e.g. a single round-robin group of 8 pairs instead of the default 2 groups of 4).
 
     Returns (group_assignments, matches) where:
       group_assignments = {pair_id: group_number}
       matches = [{"stage": "group", "group_number": n, "round_number": r,
                   "pair_a_id": ..., "pair_b_id": ...}, ...]
     """
-    groups_count = groups_count_for_pairs(len(pair_ids))
+    if groups_count is None:
+        groups_count = groups_count_for_pairs(len(pair_ids))
     group_size = len(pair_ids) // groups_count
     shuffled = list(pair_ids)
     random.shuffle(shuffled)
@@ -70,17 +99,29 @@ def run_draw(pair_ids):
     return group_assignments, matches
 
 
+def head_to_head_winner(pair_a_id, pair_b_id, group_matches):
+    """The winner_pair_id of the completed group_matches game between these two pairs, or
+    None if they haven't played (or it hasn't been scored) yet."""
+    for m in group_matches:
+        if {m["pair_a_id"], m["pair_b_id"]} == {pair_a_id, pair_b_id} and m.get("winner_pair_id"):
+            return m["winner_pair_id"]
+    return None
+
+
 def compute_group_standings(pair_ids, group_matches, tiebreak_winners=None):
     """pair_ids: pairs in one group. group_matches: completed matches for that group
     (each with pair_a_id, pair_b_id, score_a, score_b, winner_pair_id).
     tiebreak_winners: optional {frozenset({pair_a, pair_b}): winner_pair_id} for any manual
-    tie-break matches played between two pairs that are statistically tied.
+    tie-break matches played between two pairs still tied after head-to-head (e.g. a 3-way
+    circular tie with no single decisive game).
 
     Returns list of pair_ids ranked best-first: wins desc, then game_diff desc (the two
-    standard padel round-robin tie-break criteria), with an exact tie on both of those
-    broken by tiebreak_winners if present. Ties with no recorded tie-break keep stable
-    input order - games_won is NOT used as a silent third tiebreaker, since that would
-    hide a real tie from the admin instead of surfacing it for a tie-break match.
+    standard padel round-robin tie-break criteria). An exact tie on both is broken by the
+    result of the head-to-head game the two tied pairs already played each other in the
+    group stage, then by tiebreak_winners if that's also inconclusive (e.g. part of a
+    circular 3-way tie). Ties with neither keep stable input order - games_won is NOT used
+    as a silent further tiebreaker, since that would hide a real tie from the admin instead
+    of surfacing it for a tie-break match.
     """
     tiebreak_winners = tiebreak_winners or {}
     stats = {pid: {"wins": 0, "games_won": 0, "games_lost": 0} for pid in pair_ids}
@@ -109,7 +150,7 @@ def compute_group_standings(pair_ids, group_matches, tiebreak_winners=None):
         ka, kb = stat_key(a), stat_key(b)
         if ka != kb:
             return -1 if ka < kb else 1
-        winner = tiebreak_winners.get(frozenset((a, b)))
+        winner = head_to_head_winner(a, b, group_matches) or tiebreak_winners.get(frozenset((a, b)))
         if winner == a:
             return -1
         if winner == b:
