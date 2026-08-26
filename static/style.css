@@ -123,6 +123,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   flex-wrap: wrap;
   gap: 8px 16px;
 }
+.logo-block { display: flex; flex-direction: column; gap: 2px; }
 .topbar .logo { margin: 0; font-size: 18px; }
 .topbar-links { display: flex; gap: 14px; align-items: center; font-size: 13px; flex-wrap: wrap; }
 .topbar-links a { text-decoration: none; opacity: .9; }
@@ -370,10 +371,8 @@ tr:last-child td { border-bottom: none; }
 .player-link:hover { text-decoration: underline; color: var(--gold); }
 
 .app-version {
-  text-align: center;
   font-size: 11px;
-  color: #bbb;
-  padding: 10px 0 24px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .avatar {
