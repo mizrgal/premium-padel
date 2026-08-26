@@ -7,6 +7,7 @@ import os
 import random
 import ssl
 import string
+import time
 import urllib.error
 import urllib.request
 from urllib.parse import quote
@@ -19,10 +20,18 @@ import tournament_engine as engine
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
 SERVICE_KEY    = os.environ.get("SUPABASE_SERVICE_KEY", "")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
+
+AVATAR_BUCKET = "avatars"
+AVATAR_MAX_BYTES = 3 * 1024 * 1024
+AVATAR_EXT_BY_MIME = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+
+PLAY_SIDE_LABELS = {"right": "ימין", "left": "שמאל", "both": "כל צד"}
+app.jinja_env.globals["PLAY_SIDE_LABELS"] = PLAY_SIDE_LABELS
 
 STAGE_LABELS = {
     "group": "שלב הבתים",
@@ -85,6 +94,34 @@ def db_insert_many(table, rows):
 
 def db_patch(table, filter_qs, updates):
     return _supa("PATCH", f"/rest/v1/{table}?{filter_qs}", updates)
+
+
+def upload_avatar(user_id, file_storage):
+    """Uploads an avatar image straight to Supabase Storage (raw bytes, not JSON - bypasses
+    _supa). Returns (public_url, None) on success or (None, error_message) on failure."""
+    ext = AVATAR_EXT_BY_MIME.get(file_storage.mimetype)
+    if not ext:
+        return None, "סוג קובץ לא נתמך (יש להעלות JPG, PNG, WebP או GIF)"
+    data = file_storage.read()
+    if not data:
+        return None, "נא לבחור קובץ תמונה"
+    if len(data) > AVATAR_MAX_BYTES:
+        return None, "הקובץ גדול מדי (מקסימום 3MB)"
+    path = f"{user_id}/{int(time.time())}.{ext}"
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{path}",
+        data=data, method="POST",
+        headers={
+            "apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
+            "Content-Type": file_storage.mimetype, "x-upsert": "true",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, context=_ssl_ctx):
+            pass
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP {e.code} POST avatar upload: {e.read().decode()}")
+    return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{path}", None
 
 
 # ─── Data access ────────────────────────────────────────────────────────────
@@ -636,6 +673,99 @@ def build_profile_history(user_id):
     return history
 
 
+def build_player_profile_data(user_id):
+    """Every decided match this user's pairs have played across all their tournaments,
+    flattened for the /players stats & filter page (partner, opponent pair, tournament,
+    result), plus a one-row-per-tournament summary used for the championship count."""
+    matches = []
+    tournaments_summary = []
+    for pair in list_pairs_for_user(user_id):
+        tournament = get_tournament(pair["tournament_id"])
+        if not tournament:
+            continue
+        is_p1 = pair["player1_id"] == user_id
+        partner_id = pair["player2_id"] if is_p1 else pair["player1_id"]
+        partner_name = pair["player2_name"] if is_p1 else pair["player1_name"]
+        pairs_by_id = {p["id"]: p for p in list_pairs(pair["tournament_id"])}
+
+        tournaments_summary.append({
+            "tournament": tournament,
+            "is_champion": tournament.get("winner_pair_id") == pair["id"],
+        })
+
+        for m in list_matches(pair["tournament_id"]):
+            if m["pair_a_id"] != pair["id"] and m["pair_b_id"] != pair["id"]:
+                continue
+            if m["winner_pair_id"] is None:
+                continue
+            opponent = pairs_by_id.get(m["pair_b_id"] if m["pair_a_id"] == pair["id"] else m["pair_a_id"])
+            my_score = m["score_a"] if m["pair_a_id"] == pair["id"] else m["score_b"]
+            opp_score = m["score_b"] if m["pair_a_id"] == pair["id"] else m["score_a"]
+            matches.append({
+                "tournament": tournament, "stage": m["stage"],
+                "partner_id": partner_id, "partner_name": partner_name,
+                "opponent": opponent, "my_score": my_score, "opp_score": opp_score,
+                "won": m["winner_pair_id"] == pair["id"],
+            })
+    matches.sort(key=lambda m: m["tournament"]["date"], reverse=True)
+    return matches, tournaments_summary
+
+
+@app.route("/players/<pid>")
+@login_required
+def player_detail(pid):
+    player = get_user_by_id(pid)
+    if not player:
+        return redirect(url_for("index"))
+
+    all_matches, tournaments_summary = build_player_profile_data(pid)
+
+    partners, opponents, tournaments = {}, {}, {}
+    for m in all_matches:
+        if m["partner_id"]:
+            partners[m["partner_id"]] = m["partner_name"]
+        if m["opponent"]:
+            for oid, oname in (
+                (m["opponent"]["player1_id"], m["opponent"]["player1_name"]),
+                (m["opponent"]["player2_id"], m["opponent"]["player2_name"]),
+            ):
+                if oid and oid != pid:
+                    opponents[oid] = oname
+        tournaments[m["tournament"]["id"]] = m["tournament"]["name"]
+
+    partner_filter = request.args.get("partner", "")
+    opponent_filter = request.args.get("opponent", "")
+    tournament_filter = request.args.get("tournament", "")
+
+    matches = all_matches
+    if partner_filter:
+        matches = [m for m in matches if m["partner_id"] == partner_filter]
+    if opponent_filter:
+        matches = [
+            m for m in matches
+            if m["opponent"] and opponent_filter in (m["opponent"]["player1_id"], m["opponent"]["player2_id"])
+        ]
+    if tournament_filter:
+        matches = [m for m in matches if m["tournament"]["id"] == tournament_filter]
+
+    played = len(matches)
+    wins = sum(1 for m in matches if m["won"])
+    stats = {
+        "played": played, "wins": wins, "losses": played - wins,
+        "win_pct": round(wins / played * 100) if played else None,
+        "tournaments_played": len(tournaments_summary),
+        "championships": sum(1 for t in tournaments_summary if t["is_champion"]),
+    }
+
+    return render_template(
+        "player_detail.html", player=player, matches=matches, stats=stats,
+        partners=sorted(partners.items(), key=lambda kv: kv[1]),
+        opponents=sorted(opponents.items(), key=lambda kv: kv[1]),
+        tournaments=sorted(tournaments.items(), key=lambda kv: kv[1]),
+        partner_filter=partner_filter, opponent_filter=opponent_filter, tournament_filter=tournament_filter,
+    )
+
+
 @app.route("/profile")
 @login_required
 def profile():
@@ -653,6 +783,35 @@ def update_phone():
     else:
         update_user(session["user_id"], {"phone": phone})
         flash("הטלפון עודכן בהצלחה", "success")
+    return redirect(url_for("profile"))
+
+
+@app.route("/profile/details", methods=["POST"])
+@login_required
+def update_profile_details():
+    bio = request.form.get("bio", "").strip()[:280] or None
+    play_side = request.form.get("play_side", "").strip() or None
+    if play_side not in (None, "right", "left", "both"):
+        flash("צד משחק לא תקין", "error")
+    else:
+        update_user(session["user_id"], {"bio": bio, "play_side": play_side})
+        flash("הפרטים עודכנו", "success")
+    return redirect(url_for("profile"))
+
+
+@app.route("/profile/avatar", methods=["POST"])
+@login_required
+def update_avatar():
+    file = request.files.get("avatar")
+    if not file or not file.filename:
+        flash("נא לבחור קובץ תמונה", "error")
+        return redirect(url_for("profile"))
+    url, error = upload_avatar(session["user_id"], file)
+    if error:
+        flash(error, "error")
+    else:
+        update_user(session["user_id"], {"avatar_url": url})
+        flash("תמונת הפרופיל עודכנה", "success")
     return redirect(url_for("profile"))
 
 

@@ -1,4 +1,14 @@
-{% macro pair_name(pair) %}{{ pair.player1_name }} / {{ pair.player2_name }}{% endmacro %}
+{% macro player_link(id, name) %}{% if id %}<a href="{{ url_for('player_detail', pid=id) }}" class="player-link">{{ name }}</a>{% else %}{{ name }}{% endif %}{% endmacro %}
+
+{% macro pair_name(pair) %}{{ player_link(pair.player1_id, pair.player1_name) }} / {{ player_link(pair.player2_id, pair.player2_name) }}{% endmacro %}
+
+{% macro avatar(user, size=40) %}
+{%- if user and user.avatar_url -%}
+<img src="{{ user.avatar_url }}" alt="" class="avatar" style="width:{{ size }}px; height:{{ size }}px;">
+{%- else -%}
+<div class="avatar avatar-placeholder" style="width:{{ size }}px; height:{{ size }}px; font-size:{{ (size * 0.45)|round(0,'floor')|int }}px;">{{ (user.username[0] if user and user.username else '?')|upper }}</div>
+{%- endif -%}
+{% endmacro %}
 
 {% macro player_slot(prefix, label, allow_new, keep=false) %}
 <div class="slot" data-prefix="{{ prefix }}">

@@ -1,0 +1,77 @@
+{% extends "base_app.html" %}
+{% from "macros.html" import pair_name, avatar %}
+{% block title %}{{ player.username }} – Premium Padel{% endblock %}
+{% block content %}
+  <div class="player-header">
+    {{ avatar(player, 72) }}
+    <div>
+      <h1 style="margin:0;">{{ player.username }}</h1>
+      {% if player.bio %}<p class="bio">{{ player.bio }}</p>{% endif %}
+      {% if player.play_side %}<span class="badge-side">🎾 צד משחק: {{ PLAY_SIDE_LABELS.get(player.play_side, player.play_side) }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="stat-tiles">
+    <div class="stat-tile"><div class="stat-value">{{ stats.played }}</div><div class="stat-label">משחקים</div></div>
+    <div class="stat-tile"><div class="stat-value">{{ stats.wins }}</div><div class="stat-label">ניצחונות</div></div>
+    <div class="stat-tile"><div class="stat-value">{{ stats.losses }}</div><div class="stat-label">הפסדים</div></div>
+    <div class="stat-tile"><div class="stat-value">{{ stats.win_pct ~ '%' if stats.win_pct is not none else '—' }}</div><div class="stat-label">אחוזי הצלחה</div></div>
+    <div class="stat-tile"><div class="stat-value">{{ stats.tournaments_played }}</div><div class="stat-label">טורנירים</div></div>
+    <div class="stat-tile"><div class="stat-value">🏆 {{ stats.championships }}</div><div class="stat-label">אליפויות</div></div>
+  </div>
+
+  <h2>היסטוריית משחקים</h2>
+
+  <form method="GET" class="filter-form">
+    <div class="field">
+      <label>שותף/ה</label>
+      <select name="partner" onchange="this.form.submit()">
+        <option value="">הכל</option>
+        {% for pid, name in partners %}
+          <option value="{{ pid }}" {% if pid == partner_filter %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>נגד שחקן/ית</label>
+      <select name="opponent" onchange="this.form.submit()">
+        <option value="">הכל</option>
+        {% for pid, name in opponents %}
+          <option value="{{ pid }}" {% if pid == opponent_filter %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>טורניר</label>
+      <select name="tournament" onchange="this.form.submit()">
+        <option value="">הכל</option>
+        {% for tid, name in tournaments %}
+          <option value="{{ tid }}" {% if tid == tournament_filter %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if partner_filter or opponent_filter or tournament_filter %}
+      <div class="field"><a href="{{ url_for('player_detail', pid=player.id) }}" class="btn btn-small btn-outline">נקה סינון</a></div>
+    {% endif %}
+  </form>
+
+  {% if not matches %}
+    <p class="muted">אין משחקים תואמים לסינון שנבחר.</p>
+  {% else %}
+    <div class="table-scroll">
+      <table>
+        <tr><th>תאריך</th><th>טורניר</th><th>שלב</th><th>שותף/ה</th><th>נגד</th><th>תוצאה</th></tr>
+        {% for m in matches %}
+          <tr>
+            <td>{{ m.tournament.date }}</td>
+            <td><a href="{{ url_for('tournament_detail', tid=m.tournament.id) }}">{{ m.tournament.name }}</a></td>
+            <td>{{ STAGE_LABELS.get(m.stage, m.stage) }}</td>
+            <td>{{ m.partner_name }}</td>
+            <td>{{ pair_name(m.opponent) if m.opponent else '—' }}</td>
+            <td>{{ m.my_score }}:{{ m.opp_score }} {% if m.won %}✅{% else %}❌{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

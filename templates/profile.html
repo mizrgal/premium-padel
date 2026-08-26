@@ -1,17 +1,46 @@
 {% extends "base_app.html" %}
-{% from "macros.html" import pair_name %}
+{% from "macros.html" import pair_name, avatar %}
 {% block title %}אזור אישי – Premium Padel{% endblock %}
 {% block content %}
   <h1>אזור אישי</h1>
 
   <h2>פרטים אישיים</h2>
   <div class="card" style="max-width:420px;">
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+      {{ avatar(user, 64) }}
+      <form method="POST" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="flex:1;">
+        <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required style="margin-bottom:8px;">
+        <button type="submit" class="btn-small btn-outline">העלאת תמונת פרופיל</button>
+      </form>
+    </div>
+
     <p class="hint" style="margin-top:0;">שם משתמש: <strong>{{ user.username }}</strong></p>
     <form method="POST" action="{{ url_for('update_phone') }}">
       <label>טלפון</label>
       <input type="tel" name="phone" value="{{ user.phone }}" required>
       <button type="submit" class="btn-block">עדכון טלפון</button>
     </form>
+  </div>
+
+  <h2>פרופיל שחקן/ית</h2>
+  <div class="card" style="max-width:420px;">
+    <form method="POST" action="{{ url_for('update_profile_details') }}">
+      <label>כמה מילים עליך</label>
+      <textarea name="bio" maxlength="280" rows="3" placeholder="למשל: משחק/ת כבר 5 שנים, אוהב/ת נקודות ארוכות...">{{ user.bio or '' }}</textarea>
+
+      <label>צד משחק מועדף</label>
+      <select name="play_side">
+        <option value="">לא צוין</option>
+        <option value="right" {% if user.play_side == 'right' %}selected{% endif %}>ימין</option>
+        <option value="left" {% if user.play_side == 'left' %}selected{% endif %}>שמאל</option>
+        <option value="both" {% if user.play_side == 'both' %}selected{% endif %}>כל צד</option>
+      </select>
+
+      <button type="submit" class="btn-block">שמירת פרטים</button>
+    </form>
+    <p class="hint" style="margin-bottom:0; margin-top:12px;">
+      <a href="{{ url_for('player_detail', pid=user.id) }}">צפייה בעמוד השחקן/ית שלי →</a>
+    </p>
   </div>
 
   <h2>שינוי סיסמה</h2>

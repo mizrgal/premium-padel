@@ -6,6 +6,9 @@ create table if not exists padel_users (
   phone text not null,
   password_hash text not null,
   is_admin boolean not null default false,
+  bio text,
+  play_side text check (play_side in ('right', 'left', 'both')),
+  avatar_url text,
   created_at timestamptz default now()
 );
 
