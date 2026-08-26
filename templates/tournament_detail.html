@@ -1,7 +1,7 @@
 {% extends "base_app.html" %}
 {% block title %}{{ tournament.name }} – Premium Padel{% endblock %}
 
-{% from "macros.html" import pair_name, player_slot %}
+{% from "macros.html" import pair_name, pair_name_text, player_slot %}
 
 {% macro match_row(m, label) %}
 <div class="match-card">
@@ -83,7 +83,7 @@
                 <td class="row-actions">
                   <a href="{{ url_for('edit_pair', tid=tournament.id, pid=p.id) }}" class="icon-btn" title="עריכה" aria-label="עריכה">✏️</a>
                   <form method="POST" action="{{ url_for('delete_pair_route', tid=tournament.id, pid=p.id) }}"
-                        onsubmit="return confirm('להסיר את {{ pair_name(p) }} מהטורניר?{{ ' כל שאר הזוגות יחכו להגרלה מחדש.' if tournament.status == 'full' else '' }}');">
+                        onsubmit="return confirm('להסיר את {{ pair_name_text(p) }} מהטורניר?{{ ' כל שאר הזוגות יחכו להגרלה מחדש.' if tournament.status == 'full' else '' }}');">
                     <button type="submit" class="icon-btn icon-btn-danger" title="הסרה" aria-label="הסרה">🗑️</button>
                   </form>
                 </td>
@@ -235,7 +235,7 @@
                       <form method="POST" action="{{ url_for('create_tiebreak', tid=tournament.id, g=g) }}">
                         <input type="hidden" name="pair_a_id" value="{{ a.id }}">
                         <input type="hidden" name="pair_b_id" value="{{ b.id }}">
-                        <button type="submit" class="btn btn-small btn-outline">{{ pair_name(a) }} נגד {{ pair_name(b) }}</button>
+                        <button type="submit" class="btn btn-small btn-outline">{{ pair_name_text(a) }} נגד {{ pair_name_text(b) }}</button>
                       </form>
                     {% endfor %}
                   {% endfor %}

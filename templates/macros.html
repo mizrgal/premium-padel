@@ -2,6 +2,11 @@
 
 {% macro pair_name(pair) %}{{ player_link(pair.player1_id, pair.player1_name) }} / {{ player_link(pair.player2_id, pair.player2_name) }}{% endmacro %}
 
+{# Plain-text version (no <a> tags) for contexts where markup would break things: inside a
+   JS string (e.g. onsubmit="confirm('...')") or nested inside another interactive element
+   like a <button>. #}
+{% macro pair_name_text(pair) %}{{ pair.player1_name }} / {{ pair.player2_name }}{% endmacro %}
+
 {% macro avatar(user, size=40) %}
 {%- if user and user.avatar_url -%}
 <img src="{{ user.avatar_url }}" alt="" class="avatar" style="width:{{ size }}px; height:{{ size }}px;">

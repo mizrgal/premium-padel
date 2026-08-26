@@ -22,6 +22,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
+APP_VERSION = "1.0.1"  # bump on every change so it's visible which deploy is live
+app.jinja_env.globals["APP_VERSION"] = APP_VERSION
+
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
 SERVICE_KEY    = os.environ.get("SUPABASE_SERVICE_KEY", "")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")

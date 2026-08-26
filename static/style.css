@@ -369,6 +369,13 @@ tr:last-child td { border-bottom: none; }
 .player-link { text-decoration: none; }
 .player-link:hover { text-decoration: underline; color: var(--gold); }
 
+.app-version {
+  text-align: center;
+  font-size: 11px;
+  color: #bbb;
+  padding: 10px 0 24px;
+}
+
 .avatar {
   border-radius: 50%;
   object-fit: cover;
