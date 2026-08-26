@@ -1011,6 +1011,9 @@ def admin_user_edit(uid):
         phone = request.form.get("phone", "").strip()
         password = request.form.get("password", "").strip()
         is_admin = request.form.get("is_admin") == "on"
+        bio = request.form.get("bio", "").strip()[:280] or None
+        play_side = request.form.get("play_side", "").strip() or None
+        avatar_file = request.files.get("avatar")
 
         existing = get_user_by_username(username) if username else None
         if not username or not phone:
@@ -1019,10 +1022,21 @@ def admin_user_edit(uid):
             flash("שם המשתמש כבר תפוס", "error")
         elif password and len(password) < 4:
             flash("סיסמה חדשה חייבת להכיל לפחות 4 תווים", "error")
+        elif play_side not in (None, "right", "left", "both"):
+            flash("צד משחק לא תקין", "error")
         elif uid == session["user_id"] and not is_admin:
             flash("אי אפשר להסיר הרשאת אדמין מעצמך", "error")
         else:
-            updates = {"username": username, "phone": phone, "is_admin": is_admin}
+            avatar_url, avatar_error = (None, None)
+            if avatar_file and avatar_file.filename:
+                avatar_url, avatar_error = upload_avatar(uid, avatar_file)
+            if avatar_error:
+                flash(avatar_error, "error")
+                return render_template("admin_user_edit.html", user=user)
+            updates = {"username": username, "phone": phone, "is_admin": is_admin,
+                       "bio": bio, "play_side": play_side}
+            if avatar_url:
+                updates["avatar_url"] = avatar_url
             if password:
                 updates["password_hash"] = generate_password_hash(password)
             update_user(uid, updates)
@@ -1034,6 +1048,21 @@ def admin_user_edit(uid):
         return render_template("admin_user_edit.html", user=user)
 
     return render_template("admin_user_edit.html", user=user)
+
+
+@app.route("/admin/users/<uid>/password", methods=["POST"])
+@admin_required
+def admin_user_set_password(uid):
+    user = get_user_by_id(uid)
+    if not user:
+        return redirect(url_for("admin_users"))
+    password = request.form.get("password", "").strip()
+    if len(password) < 4:
+        flash("סיסמה חייבת להכיל לפחות 4 תווים", "error")
+    else:
+        update_user(uid, {"password_hash": generate_password_hash(password)})
+        flash(f"הסיסמה של '{user['username']}' עודכנה", "success")
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/users/<uid>/delete", methods=["POST"])

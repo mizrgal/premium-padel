@@ -1,4 +1,5 @@
 {% extends "base_app.html" %}
+{% from "macros.html" import avatar %}
 {% block title %}ניהול משתמשים – Premium Padel{% endblock %}
 {% block content %}
   <h1>ניהול משתמשים (<span id="user-count">{{ users|length }}</span>)</h1>
@@ -7,17 +8,27 @@
 
   <div class="table-scroll">
     <table id="users-table">
-      <tr><th>שם משתמש</th><th>טלפון</th><th>הרשאה</th><th>נרשם ב-</th><th></th></tr>
+      <tr><th></th><th>שם משתמש</th><th>טלפון</th><th>הרשאה</th><th>נרשם ב-</th><th></th></tr>
       {% for u in users %}
         <tr data-search="{{ (u.username ~ ' ' ~ u.phone)|lower }}">
-          <td>{{ u.username }}</td>
+          <td>{{ avatar(u, 32) }}</td>
+          <td><a href="{{ url_for('player_detail', pid=u.id) }}" class="player-link">{{ u.username }}</a></td>
           <td>{{ u.phone }}</td>
           <td>
             {% if u.is_admin %}<span class="badge badge-completed">אדמין</span>
             {% else %}<span class="muted">משתמש</span>{% endif %}
           </td>
           <td>{{ u.created_at[:10] }}</td>
-          <td class="row-actions"><a href="{{ url_for('admin_user_edit', uid=u.id) }}" class="icon-btn" title="עריכה" aria-label="עריכה">✏️</a></td>
+          <td class="row-actions">
+            <a href="{{ url_for('admin_user_edit', uid=u.id) }}" class="icon-btn" title="עריכה" aria-label="עריכה">✏️</a>
+            <details class="edit-toggle" style="display:inline-block; vertical-align:middle;">
+              <summary class="icon-btn" title="איפוס סיסמה" aria-label="איפוס סיסמה" style="display:inline-flex;">🔑</summary>
+              <form method="POST" action="{{ url_for('admin_user_set_password', uid=u.id) }}" class="score-form" style="margin-top:6px;">
+                <input type="password" name="password" placeholder="סיסמה חדשה" minlength="4" required style="width:140px;">
+                <button type="submit" class="btn-small">עדכן</button>
+              </form>
+            </details>
+          </td>
         </tr>
       {% endfor %}
     </table>
