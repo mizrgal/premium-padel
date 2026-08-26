@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Netanya Padel{% endblock %}</title>
+  <title>{% block title %}Premium Padel{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="topbar">
-    <div class="logo"><a href="{{ url_for('index') }}" style="text-decoration:none; color:#fff;">Netanya <span style="color:var(--gold);">Padel</span> 🎾</a></div>
+    <div class="logo"><a href="{{ url_for('index') }}" style="text-decoration:none; color:#fff;">Premium <span style="color:var(--gold);">Padel</span> 🎾</a></div>
     <div class="topbar-links">
       <a href="{{ url_for('index') }}">🏠 כל הטורנירים</a>
       {% if session.get('is_admin') %}

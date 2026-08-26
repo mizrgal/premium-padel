@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Netanya Padel - רישום ותפעול טורנירי פאדל"""
+"""Premium Padel - רישום ותפעול טורנירי פאדל"""
 
 import functools
 import json

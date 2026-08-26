@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Netanya Padel – הרשמה</title>
+  <title>Premium Padel – הרשמה</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="center-screen">
     <div class="card auth-card">
-      <div class="logo">Netanya <span>Padel</span> 🎾</div>
+      <div class="logo">Premium <span>Padel</span> 🎾</div>
       <div class="subtitle">יצירת חשבון חדש</div>
 
       {% for category, message in get_flashed_messages(with_categories=true) %}
