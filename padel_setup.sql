@@ -14,7 +14,7 @@ create table if not exists padel_tournaments (
   name text not null,
   date date not null,
   level text not null,
-  pairs_count int not null check (pairs_count in (4, 8, 12, 16)),
+  pairs_count int not null check (pairs_count in (4, 6, 8, 12, 16)),
   groups_count int not null,
   game_target int not null check (game_target in (4, 6, 8)),
   price_per_player numeric(10,2),
