@@ -43,7 +43,7 @@
     {% if tournament.location %}<span class="meta-item">📍 {{ tournament.location }}</span>{% endif %}
     <span class="meta-item">🎯 רמה {{ tournament.level }}</span>
     <span class="meta-item">👥 {{ tournament.pairs_count }} זוגות</span>
-    <span class="meta-item">🎾 עד {{ tournament.game_target }} משחקים בשלב הבתים</span>
+    <span class="meta-item">🎾 כל משחק עד {{ tournament.game_target }} בשלב הבתים</span>
     {% if tournament.price_per_player is not none %}<span class="meta-item">💰 ₪{{ tournament.price_per_player|int }} לאדם</span>{% endif %}
     {% if tournament.manager %}<span class="meta-item">👤 מנהל הטורניר: {{ tournament.manager }}</span>{% endif %}
   </div>
@@ -167,7 +167,7 @@
     {% for stage, matchups in knockout_stages %}
       <h2>{{ STAGE_LABELS.get(stage, stage) }}
         {% if matchups and matchups[0].legs and matchups[0].legs[0].game_target %}
-          <span class="muted" style="font-size:12px; font-weight:400;">(עד {{ matchups[0].legs[0].game_target }} משחקים)</span>
+          <span class="muted" style="font-size:12px; font-weight:400;">(כל משחק עד {{ matchups[0].legs[0].game_target }})</span>
         {% endif %}
       </h2>
       {% for mu in matchups %}
@@ -198,7 +198,7 @@
       <div class="group-block">
         <h2 class="group-heading">בית {{ g }}
           {% if data.matches and data.matches[0].game_target %}
-            <span class="muted" style="font-size:12px; font-weight:400;">(עד {{ data.matches[0].game_target }} משחקים)</span>
+            <span class="muted" style="font-size:12px; font-weight:400;">(כל משחק עד {{ data.matches[0].game_target }})</span>
           {% endif %}
         </h2>
         <div class="standings-card">
