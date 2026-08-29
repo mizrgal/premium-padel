@@ -1,5 +1,5 @@
 {% extends "base_app.html" %}
-{% from "macros.html" import pair_name, avatar %}
+{% from "macros.html" import pair_name, player_link, avatar %}
 {% block title %}{{ player.username }} – Premium Padel{% endblock %}
 {% block content %}
   <div class="player-header">
@@ -69,7 +69,7 @@
             <td>{{ m.tournament.date }}</td>
             <td><a href="{{ url_for('tournament_detail', tid=m.tournament.id) }}">{{ m.tournament.name }}</a></td>
             <td>{{ STAGE_LABELS.get(m.stage, m.stage) }}</td>
-            <td>{{ m.partner_name }}</td>
+            <td>{{ player_link(m.partner_id, m.partner_name) }}</td>
             <td>{{ pair_name(m.opponent) if m.opponent else '—' }}</td>
             <td>{{ m.my_score }}:{{ m.opp_score }} {% if m.won %}✅{% else %}❌{% endif %}</td>
           </tr>
