@@ -318,7 +318,8 @@ def undo_draw(tid):
 def stage_order_for(tournament):
     groups_count = tournament["groups_count"]
     if groups_count == 1:
-        return ["group", "final"]
+        # a single group has no knockout bracket - group rank 1 is the champion directly
+        return ["group"]
     return ["group"] + (["quarterfinal"] if groups_count == 4 else []) + ["semifinal", "final"]
 
 
@@ -436,6 +437,20 @@ def _tiebreak_winners_by_group(tid):
     return by_group
 
 
+def _group_has_unresolved_ties(group_pair_ids, group_matches, stats, tiebreak_winners):
+    """True if any bucket of pairs tied on (wins, game_diff) still can't be ordered - i.e.
+    their head-to-head result isn't decisive and no tiebreak match has settled it either
+    (e.g. a circular 3-way tie). Mirrors the check tournament_detail shows the admin."""
+    for bucket in engine.find_stat_ties(group_pair_ids, stats):
+        resolved = any(
+            engine.head_to_head_winner(a, b, group_matches) or frozenset((a, b)) in tiebreak_winners
+            for a in bucket for b in bucket if a != b
+        )
+        if not resolved:
+            return True
+    return False
+
+
 def _next_stage_matches(tournament, from_stage, stage_matches, pairs):
     """Pure computation of what the next stage's matches should be, given `from_stage` is
     fully complete. Returns (next_stage_name_or_None, [match dicts without game_target/tournament_id])."""
@@ -505,11 +520,22 @@ def recompute_from_stage(tournament, edited_stage):
 
     matches = list_matches(tid)
 
-    if edited_stage == order[-1]:  # editing the final
-        final_matches = [m for m in matches if m["stage"] == "final"]
-        if final_matches and _stage_is_resolved("final", final_matches):
-            winner = _matchup_winner(_matchups_by_index(final_matches)[0])
-            update_tournament_status(tid, "completed", winner_pair_id=winner)
+    if edited_stage == order[-1]:  # editing the tournament's terminal stage
+        stage_matches = [m for m in matches if m["stage"] == edited_stage]
+        if not stage_matches or not _stage_is_resolved(edited_stage, stage_matches):
+            return
+        if edited_stage == "group":
+            # single-group tournament: group rank 1 is the champion directly, no final match
+            pairs = list_pairs(tid)
+            group_pair_ids = [p["id"] for p in pairs]
+            tiebreak_winners = _tiebreak_winners_by_group(tid).get(1, {})
+            ranked_ids, stats = engine.compute_group_standings(group_pair_ids, stage_matches, tiebreak_winners)
+            if _group_has_unresolved_ties(group_pair_ids, stage_matches, stats, tiebreak_winners):
+                return  # waiting on a manual tie-break match before the champion is decided
+            winner = ranked_ids[0]
+        else:
+            winner = _matchup_winner(_matchups_by_index(stage_matches)[0])
+        update_tournament_status(tid, "completed", winner_pair_id=winner)
         return
 
     pairs = list_pairs(tid)

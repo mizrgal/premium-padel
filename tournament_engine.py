@@ -203,13 +203,13 @@ def generate_next_stage(tournament_pairs_count, groups_count, current_stage, sta
     - current_stage in ("quarterfinal", "semifinal"): needs stage_winner_ids_in_order
       (winners in the same order the matches were created). Pairs consecutive winners.
     - current_stage == "final": returns (None, []) - tournament is complete.
+    - groups_count == 1: there's only one group and no knockout bracket - group rank 1 is
+      the champion directly, so "group" also returns (None, []) once it's done.
     """
     if current_stage == "group":
-        qualifiers = group_qualifiers(groups_count, standings_by_group)
         if groups_count == 1:
-            return "final", _with_match_index([
-                {"pair_a_id": _qualifier_pair_id(qualifiers, 1, 1), "pair_b_id": _qualifier_pair_id(qualifiers, 1, 2)},
-            ])
+            return None, []
+        qualifiers = group_qualifiers(groups_count, standings_by_group)
         if groups_count == 2:
             return "semifinal", _with_match_index([
                 {"pair_a_id": _qualifier_pair_id(qualifiers, 1, 1), "pair_b_id": _qualifier_pair_id(qualifiers, 2, 2)},
