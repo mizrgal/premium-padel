@@ -6,6 +6,9 @@
     {{ avatar(player, 72) }}
     <div>
       <h1 style="margin:0;">{{ player.username }}</h1>
+      {% if stats.championships %}
+        <div class="player-trophies" title="{{ stats.championships }} אליפויות">{{ '🏆' * stats.championships }}</div>
+      {% endif %}
       {% if player.bio %}<p class="bio">{{ player.bio }}</p>{% endif %}
       {% if player.play_side %}<span class="badge-side">🎾 צד משחק: {{ PLAY_SIDE_LABELS.get(player.play_side, player.play_side) }}</span>{% endif %}
     </div>

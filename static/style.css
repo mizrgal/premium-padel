@@ -397,6 +397,7 @@ tr:last-child td { border-bottom: none; }
   margin-bottom: 20px;
 }
 .player-header .bio { margin-top: 6px; font-size: 14px; color: var(--navy); }
+.player-trophies { font-size: 15px; line-height: 1; letter-spacing: 2px; margin-top: 4px; }
 .player-header .badge-side {
   display: inline-block;
   margin-top: 8px;
