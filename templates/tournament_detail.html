@@ -215,7 +215,11 @@
               {% endfor %}
             </table>
           </div>
-          <p class="hint" style="margin-top:8px;">🟡 שני המקומות הראשונים עולים לשלב הבא</p>
+          {% if tournament.groups_count > 1 %}
+            <p class="hint" style="margin-top:8px;">🟡 שני המקומות הראשונים עולים לשלב הבא</p>
+          {% else %}
+            <p class="hint" style="margin-top:8px;">🏆 המקום הראשון הוא אלוף הטורניר</p>
+          {% endif %}
         </div>
 
         {% for tie in data.unresolved_ties %}
