@@ -60,6 +60,7 @@ create table if not exists padel_matches (
   score_a int,
   score_b int,
   winner_pair_id uuid references padel_pairs(id),
+  video_url text,
   created_at timestamptz default now()
 );
 
@@ -70,6 +71,9 @@ begin
       add constraint winner_pair_fk foreign key (winner_pair_id) references padel_pairs(id);
   end if;
 end $$;
+
+-- pre-existing databases: add the video_url column if it isn't there yet
+alter table padel_matches add column if not exists video_url text;
 
 create index if not exists idx_padel_pairs_tournament on padel_pairs(tournament_id);
 create index if not exists idx_padel_matches_tournament on padel_matches(tournament_id);

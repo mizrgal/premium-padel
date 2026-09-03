@@ -20,6 +20,18 @@
           </form>
         </details>
       {% endif %}
+      {% if m.video_url %}
+        <a href="{{ m.video_url }}" target="_blank" rel="noopener" class="video-link">🎥 צפייה בסרטון</a>
+      {% endif %}
+      {% if session.get('is_admin') %}
+        <details class="edit-toggle">
+          <summary>{{ '✏️ ערוך סרטון' if m.video_url else '🎥 הוסף סרטון' }}</summary>
+          <form method="POST" action="{{ url_for('submit_match_video', mid=m.id) }}" class="score-form">
+            <input type="url" name="video_url" placeholder="קישור YouTube" value="{{ m.video_url or '' }}" style="flex:1; min-width:180px;">
+            <button type="submit" class="btn-small">שמור</button>
+          </form>
+        </details>
+      {% endif %}
     </div>
   {% elif session.get('is_admin') and tournament.status == 'in_progress' %}
     <form method="POST" action="{{ url_for('submit_score', mid=m.id) }}" class="score-form">
