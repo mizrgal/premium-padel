@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.0.6"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.0.7"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -271,8 +271,31 @@ def update_match_score(mid, score_a, score_b, winner_pair_id):
     })
 
 
-def update_match_video(mid, video_url):
-    db_patch("padel_matches", f"id=eq.{mid}", {"video_url": video_url})
+def videos_by_match(match_ids):
+    """{match_id: [video rows]} for every video attached to any of these matches."""
+    if not match_ids:
+        return {}
+    ids = ",".join(match_ids)
+    rows = db_get(f"/rest/v1/padel_match_videos?match_id=in.({ids})&select=*&order=created_at.asc")
+    by_match = {}
+    for v in rows:
+        by_match.setdefault(v["match_id"], []).append(v)
+    return by_match
+
+
+def add_match_video(mid, video_url, added_by):
+    return db_insert("padel_match_videos", {
+        "match_id": mid, "video_url": video_url, "added_by": added_by,
+    })
+
+
+def get_match_video(vid):
+    rows = db_get(f"/rest/v1/padel_match_videos?id=eq.{quote(vid)}&select=*")
+    return rows[0] if rows else None
+
+
+def delete_match_video(vid):
+    _supa("DELETE", f"/rest/v1/padel_match_videos?id=eq.{vid}")
 
 
 # ─── Auth ───────────────────────────────────────────────────────────────────
@@ -1123,6 +1146,9 @@ def tournament_detail(tid):
     pairs = list_pairs(tid)
     pairs_by_id = {p["id"]: p for p in pairs}
     matches = list_matches(tid)
+    videos = videos_by_match([m["id"] for m in matches])
+    for m in matches:
+        m["videos"] = videos.get(m["id"], [])
     user_id = session.get("user_id")
 
     already_in = pair_conflicts(pairs, user_id)
@@ -1469,19 +1495,30 @@ def submit_score(mid):
     return redirect(url_for("tournament_detail", tid=tournament["id"]))
 
 
-@app.route("/matches/<mid>/video", methods=["POST"])
+@app.route("/matches/<mid>/videos", methods=["POST"])
 @admin_required
-def submit_match_video(mid):
+def add_match_video_route(mid):
     match = get_match(mid)
     if not match:
         return redirect(url_for("index"))
 
     video_url = request.form.get("video_url", "").strip()
-    if video_url and not ("youtube.com/" in video_url or "youtu.be/" in video_url):
+    if not video_url or not ("youtube.com/" in video_url or "youtu.be/" in video_url):
         flash("זה לא נראה כמו קישור YouTube תקין", "error")
         return redirect(url_for("tournament_detail", tid=match["tournament_id"]))
 
-    update_match_video(mid, video_url or None)
+    add_match_video(mid, video_url, session.get("user_id"))
+    return redirect(url_for("tournament_detail", tid=match["tournament_id"]))
+
+
+@app.route("/videos/<vid>/delete", methods=["POST"])
+@admin_required
+def delete_match_video_route(vid):
+    video = get_match_video(vid)
+    if not video:
+        return redirect(url_for("index"))
+    match = get_match(video["match_id"])
+    delete_match_video(vid)
     return redirect(url_for("tournament_detail", tid=match["tournament_id"]))
 
 

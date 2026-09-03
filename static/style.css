@@ -269,6 +269,9 @@ tr:last-child td { border-bottom: none; }
 .score-form { display: flex; gap: 6px; align-items: center; }
 .score-form input { width: 56px; min-height: 40px; margin: 0; padding: 6px 8px; text-align: center; }
 
+.match-videos { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.video-item { display: flex; align-items: center; }
+.video-item form { display: inline; }
 .video-link { font-size: 12px; color: #c4302b; text-decoration: none; white-space: nowrap; }
 .video-link:hover { text-decoration: underline; }
 

@@ -60,7 +60,15 @@ create table if not exists padel_matches (
   score_a int,
   score_b int,
   winner_pair_id uuid references padel_pairs(id),
-  video_url text,
+  created_at timestamptz default now()
+);
+
+-- a match can have any number of video links (e.g. footage from multiple angles/phones)
+create table if not exists padel_match_videos (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references padel_matches(id),
+  video_url text not null,
+  added_by uuid references padel_users(id),
   created_at timestamptz default now()
 );
 
@@ -72,8 +80,6 @@ begin
   end if;
 end $$;
 
--- pre-existing databases: add the video_url column if it isn't there yet
-alter table padel_matches add column if not exists video_url text;
-
 create index if not exists idx_padel_pairs_tournament on padel_pairs(tournament_id);
 create index if not exists idx_padel_matches_tournament on padel_matches(tournament_id);
+create index if not exists idx_padel_match_videos_match on padel_match_videos(match_id);

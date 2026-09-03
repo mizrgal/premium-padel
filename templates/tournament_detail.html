@@ -20,15 +20,27 @@
           </form>
         </details>
       {% endif %}
-      {% if m.video_url %}
-        <a href="{{ m.video_url }}" target="_blank" rel="noopener" class="video-link">🎥 צפייה בסרטון</a>
+      {% if m.videos %}
+        <div class="match-videos">
+          {% for v in m.videos %}
+            <span class="video-item">
+              <a href="{{ v.video_url }}" target="_blank" rel="noopener" class="video-link">🎥 סרטון{{ ' ' ~ loop.index if m.videos|length > 1 else '' }}</a>
+              {% if session.get('is_admin') %}
+                <form method="POST" action="{{ url_for('delete_match_video_route', vid=v.id) }}"
+                      onsubmit="return confirm('למחוק את הסרטון?');">
+                  <button type="submit" class="icon-btn icon-btn-danger" title="מחיקת סרטון" aria-label="מחיקת סרטון">✕</button>
+                </form>
+              {% endif %}
+            </span>
+          {% endfor %}
+        </div>
       {% endif %}
       {% if session.get('is_admin') %}
         <details class="edit-toggle">
-          <summary>{{ '✏️ ערוך סרטון' if m.video_url else '🎥 הוסף סרטון' }}</summary>
-          <form method="POST" action="{{ url_for('submit_match_video', mid=m.id) }}" class="score-form">
-            <input type="url" name="video_url" placeholder="קישור YouTube" value="{{ m.video_url or '' }}" style="flex:1; min-width:180px;">
-            <button type="submit" class="btn-small">שמור</button>
+          <summary>🎥 הוסף סרטון</summary>
+          <form method="POST" action="{{ url_for('add_match_video_route', mid=m.id) }}" class="score-form">
+            <input type="url" name="video_url" placeholder="קישור YouTube" required style="flex:1; min-width:180px;">
+            <button type="submit" class="btn-small">הוסף</button>
           </form>
         </details>
       {% endif %}
