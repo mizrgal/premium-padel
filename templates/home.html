@@ -1,0 +1,27 @@
+{% extends "base_app.html" %}
+{% from "macros.html" import avatar %}
+{% block title %}עמוד הבית – Premium Padel{% endblock %}
+{% block content %}
+  <h1>🥇 שלושת השחקנים המובילים</h1>
+  <p class="muted" style="margin-top:-8px;">דירוג לפי אחוז ניצחונות (בקרב שחקנים עם 3 משחקים לפחות)</p>
+
+  {% if not leaderboard %}
+    <p class="muted">עדיין אין מספיק משחקים כדי לחשב דירוג.</p>
+  {% else %}
+    <div class="leaderboard">
+      {% for row in leaderboard %}
+        <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="leaderboard-card">
+          <span class="rank-badge rank-badge-{{ loop.index }} leaderboard-rank">{{ loop.index }}</span>
+          {{ avatar(row.user, 56) }}
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">{{ row.user.username }}</div>
+            {% if row.championships %}
+              <div class="player-trophies">{{ '🏆' * row.championships }}</div>
+            {% endif %}
+            <div class="leaderboard-stats">{{ (row.win_pct)|round(0, 'floor')|int }}% ניצחונות · {{ row.wins }}/{{ row.played }} משחקים</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

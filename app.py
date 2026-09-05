@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.0.7"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.0.8"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -694,6 +694,47 @@ def logout():
     return redirect(url_for("login_page"))
 
 
+def build_leaderboard(min_games=3, top_n=3):
+    """Rank every user by win percentage across all their decided matches (tiebreak: total
+    wins), among users with at least `min_games` played - otherwise a single lucky win looks
+    like a perfect record. Returns the top `top_n` as
+    [{"user", "played", "wins", "win_pct", "championships"}, ...]."""
+    users_by_id = {u["id"]: u for u in list_users()}
+    pairs_by_id = {p["id"]: p for p in db_get("/rest/v1/padel_pairs?select=*")}
+    all_matches = db_get("/rest/v1/padel_matches?select=*")
+
+    stats = {uid: {"played": 0, "wins": 0, "championships": 0} for uid in users_by_id}
+
+    for t in list_tournaments():
+        pair = pairs_by_id.get(t.get("winner_pair_id"))
+        if not pair:
+            continue
+        for uid in (pair.get("player1_id"), pair.get("player2_id")):
+            if uid in stats:
+                stats[uid]["championships"] += 1
+
+    for m in all_matches:
+        if m["winner_pair_id"] is None:
+            continue
+        for pid, is_winner in ((m["pair_a_id"], m["winner_pair_id"] == m["pair_a_id"]),
+                                (m["pair_b_id"], m["winner_pair_id"] == m["pair_b_id"])):
+            pair = pairs_by_id.get(pid)
+            if not pair:
+                continue
+            for uid in (pair.get("player1_id"), pair.get("player2_id")):
+                if uid in stats:
+                    stats[uid]["played"] += 1
+                    stats[uid]["wins"] += 1 if is_winner else 0
+
+    leaderboard = [
+        {"user": users_by_id[uid], "played": s["played"], "wins": s["wins"],
+         "win_pct": s["wins"] / s["played"] * 100, "championships": s["championships"]}
+        for uid, s in stats.items() if s["played"] >= min_games
+    ]
+    leaderboard.sort(key=lambda r: (-r["win_pct"], -r["wins"]))
+    return leaderboard[:top_n]
+
+
 def build_profile_history(user_id):
     """One entry per tournament the user has a pair in: who their partner was, whether
     they were crowned champion, and every match their pair played with its result."""
@@ -765,6 +806,13 @@ def build_player_profile_data(user_id):
             })
     matches.sort(key=lambda m: m["tournament"]["date"], reverse=True)
     return matches, tournaments_summary
+
+
+@app.route("/home")
+@login_required
+def home_page():
+    leaderboard = build_leaderboard()
+    return render_template("home.html", leaderboard=leaderboard)
 
 
 @app.route("/players/<pid>")

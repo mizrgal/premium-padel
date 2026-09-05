@@ -250,6 +250,26 @@ tr:last-child td { border-bottom: none; }
 }
 .rank-badge-1 { background: var(--gold); color: var(--navy); }
 .rank-badge-2 { background: #d9dce6; color: var(--navy); }
+.rank-badge-3 { background: #e3b28a; color: var(--navy); }
+
+.leaderboard { display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
+.leaderboard-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  transition: box-shadow .15s;
+}
+.leaderboard-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.leaderboard-rank { width: 30px; height: 30px; font-size: 15px; flex-shrink: 0; }
+.leaderboard-info { display: flex; flex-direction: column; gap: 2px; }
+.leaderboard-name { font-weight: 700; }
+.leaderboard-stats { font-size: 13px; color: #888; }
 
 .match-card {
   background: #fff;
