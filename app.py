@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.0.8"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.0.9"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -808,9 +808,9 @@ def build_player_profile_data(user_id):
     return matches, tournaments_summary
 
 
-@app.route("/home")
+@app.route("/")
 @login_required
-def home_page():
+def index():
     leaderboard = build_leaderboard()
     return render_template("home.html", leaderboard=leaderboard)
 
@@ -939,9 +939,9 @@ def update_password():
 
 
 # ─── Dashboard & tournament creation ────────────────────────────────────────
-@app.route("/")
+@app.route("/tournaments")
 @login_required
-def index():
+def tournaments_list():
     tournaments = list_tournaments()
     for t in tournaments:
         t["pairs_registered"] = len(list_pairs(t["id"]))
@@ -1066,7 +1066,7 @@ def delete_tournament_route(tid):
         return redirect(url_for("index"))
     delete_tournament(tid)
     flash(f"הטורניר '{tournament['name']}' נמחק", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("tournaments_list"))
 
 
 @app.route("/admin/users/new", methods=["GET", "POST"])

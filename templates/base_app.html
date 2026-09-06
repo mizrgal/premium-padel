@@ -13,8 +13,8 @@
       <div class="app-version">v{{ APP_VERSION }}</div>
     </div>
     <div class="topbar-links">
-      <a href="{{ url_for('home_page') }}">🥇 עמוד הבית</a>
-      <a href="{{ url_for('index') }}">🏠 כל הטורנירים</a>
+      <a href="{{ url_for('index') }}">🥇 עמוד הבית</a>
+      <a href="{{ url_for('tournaments_list') }}">🏠 כל הטורנירים</a>
       {% if session.get('is_admin') %}
         <a href="{{ url_for('tournament_new') }}">+ טורניר חדש</a>
         <a href="{{ url_for('admin_users') }}">משתמשים</a>
