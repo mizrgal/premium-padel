@@ -34,19 +34,38 @@
       </button>
     </form>
 
-    {% if my_vote %}
+    {% if my_vote or votes %}
       <h2 style="margin-top:28px;">תוצאות ההצבעה עד כה ({{ total_votes }} מצביעים)</h2>
       <div class="vote-tally">
         {% for p in pairs %}
           {% set count = tally.get(p.id, 0) %}
           {% set pct = (count / total_votes * 100) if total_votes else 0 %}
-          <div class="vote-tally-row{{ ' my-pick' if my_vote.pair_id == p.id else '' }}">
-            <div class="vote-tally-label">{{ pair_name(p) }}{% if my_vote.pair_id == p.id %} ⭐{% endif %}</div>
+          <div class="vote-tally-row{{ ' my-pick' if my_vote and my_vote.pair_id == p.id else '' }}">
+            <div class="vote-tally-label">{{ pair_name(p) }}{% if my_vote and my_vote.pair_id == p.id %} ⭐{% endif %}</div>
             <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
             <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
           </div>
         {% endfor %}
       </div>
+    {% endif %}
+
+    {% if session.get('is_admin') and votes is not none %}
+      <h2 style="margin-top:28px;">מי הצביע למה (למנהל/ת בלבד)</h2>
+      {% if not votes %}
+        <p class="muted">עדיין אין הצבעות.</p>
+      {% else %}
+        <div class="table-scroll">
+          <table>
+            <tr><th>שם</th><th>הצביע/ה ל</th></tr>
+            {% for v in votes|sort(attribute='voter_name') %}
+              <tr>
+                <td>{{ v.voter_name }}</td>
+                <td>{{ pair_name(pairs_by_id[v.pair_id]) if v.pair_id in pairs_by_id else '—' }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      {% endif %}
     {% endif %}
   {% endif %}
 {% endblock %}
