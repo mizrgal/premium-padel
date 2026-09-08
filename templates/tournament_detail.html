@@ -152,11 +152,12 @@
   {% endif %}
 
   {% if tournament.status == 'full' %}
-    <div class="card" style="max-width:420px; margin-bottom:20px; display:flex; gap:8px; flex-wrap:wrap;">
-      <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn-gold" style="flex:1; min-width:160px; text-align:center; text-decoration:none;">🗳️ הצבע/י למי שינצח</a>
-      <button type="button" class="btn-outline copy-link-btn" data-copy-link="{{ url_for('tournament_vote', tid=tournament.id, _external=True) }}">📋 העתק קישור לשיתוף</button>
+    <h2>🗳️ הצבעה: מי ינצח?</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+      <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn btn-gold">🗳️ הצבע/י למי שינצח</a>
+      <button type="button" class="btn btn-outline copy-link-btn" data-copy-link="{{ url_for('tournament_vote', tid=tournament.id, _external=True) }}">📋 העתק קישור לשיתוף</button>
     </div>
-    <p class="hint" style="margin-top:-14px; margin-bottom:20px;">מי שאין לו חשבון באתר יכול להצביע גם דרך הקישור הזה, בלי להתחבר.</p>
+    <p class="hint" style="margin-bottom:20px;">מי שאין לו חשבון באתר יכול להצביע גם דרך הקישור הזה, בלי להתחבר.</p>
   {% endif %}
 
   {% if tournament.status in ('full', 'in_progress', 'completed') %}
