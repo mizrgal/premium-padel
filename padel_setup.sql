@@ -72,16 +72,18 @@ create table if not exists padel_match_videos (
   created_at timestamptz default now()
 );
 
--- one prediction vote per user per tournament (who they think will win); re-voting
--- updates the existing row rather than inserting a second one (see cast_vote in app.py)
+-- no login to vote - voter_name (as typed) is the only identity. One vote per person per
+-- tournament, enforced case-insensitively via the unique index below; re-voting with the
+-- same name updates the existing row rather than inserting a second one (see cast_vote).
 create table if not exists padel_votes (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references padel_tournaments(id),
-  user_id uuid not null references padel_users(id),
+  voter_name text not null,
   pair_id uuid not null references padel_pairs(id),
-  created_at timestamptz default now(),
-  unique (tournament_id, user_id)
+  created_at timestamptz default now()
 );
+create unique index if not exists idx_padel_votes_unique_voter
+  on padel_votes (tournament_id, lower(voter_name));
 
 do $$
 begin

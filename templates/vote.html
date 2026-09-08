@@ -18,7 +18,10 @@
       {% endif %}
     </p>
   {% else %}
+    <p class="hint" style="margin:10px 0 16px;">כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
     <form method="POST" class="vote-form">
+      <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
+             value="{{ my_vote.voter_name if my_vote else '' }}" style="margin-bottom:6px;">
       {% for p in pairs %}
         <label class="vote-option{{ ' selected' if my_vote and my_vote.pair_id == p.id else '' }}">
           <input type="radio" name="pair_id" value="{{ p.id }}"

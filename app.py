@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.1.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.1.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -252,18 +252,26 @@ def list_votes(tid):
     return db_get(f"/rest/v1/padel_votes?tournament_id=eq.{quote(tid)}&select=*")
 
 
-def get_user_vote(tid, user_id):
-    rows = db_get(
-        f"/rest/v1/padel_votes?tournament_id=eq.{quote(tid)}&user_id=eq.{quote(user_id)}&select=*"
-    )
+def get_vote(vid):
+    rows = db_get(f"/rest/v1/padel_votes?id=eq.{quote(vid)}&select=*")
     return rows[0] if rows else None
 
 
-def cast_vote(tid, user_id, pair_id, existing_vote_id=None):
+def get_vote_by_name(tid, voter_name):
+    """Case-insensitive match on voter_name within this tournament - there's no login for
+    voting, so a person's name (as they typed it) is the only identity we have."""
+    normalized = voter_name.strip().lower()
+    for v in list_votes(tid):
+        if v["voter_name"].strip().lower() == normalized:
+            return v
+    return None
+
+
+def cast_vote(tid, voter_name, pair_id, existing_vote_id=None):
     if existing_vote_id:
         db_patch("padel_votes", f"id=eq.{existing_vote_id}", {"pair_id": pair_id})
     else:
-        db_insert("padel_votes", {"tournament_id": tid, "user_id": user_id, "pair_id": pair_id})
+        db_insert("padel_votes", {"tournament_id": tid, "voter_name": voter_name, "pair_id": pair_id})
 
 
 def list_matches(tid):
@@ -1304,27 +1312,41 @@ def tournament_detail(tid):
 
 
 @app.route("/tournaments/<tid>/vote", methods=["GET", "POST"])
-@login_required
 def tournament_vote(tid):
+    """No login required - voting only asks for the person's name (see get_vote_by_name for
+    how that's used to keep one vote per person) so anyone with the link can take part."""
     tournament = get_tournament(tid)
     if not tournament:
         return redirect(url_for("index"))
 
-    user_id = session["user_id"]
     pairs = list_pairs(tid)
-    my_vote = get_user_vote(tid, user_id)
+    cookie_key = f"pp_vote_{tid}"
+    my_vote = None
+    voted_id = request.cookies.get(cookie_key)
+    if voted_id:
+        my_vote = get_vote(voted_id)
 
     if request.method == "POST":
         if tournament["status"] != "full":
             flash("ההצבעה לא פתוחה כרגע", "error")
             return redirect(url_for("tournament_vote", tid=tid))
+        voter_name = request.form.get("voter_name", "").strip()
         pair_id = request.form.get("pair_id", "")
+        if len(voter_name) < 2:
+            flash("יש להזין שם מלא", "error")
+            return redirect(url_for("tournament_vote", tid=tid))
         if not any(p["id"] == pair_id for p in pairs):
             flash("יש לבחור זוג מהרשימה", "error")
             return redirect(url_for("tournament_vote", tid=tid))
-        cast_vote(tid, user_id, pair_id, existing_vote_id=my_vote["id"] if my_vote else None)
+
+        existing = my_vote or get_vote_by_name(tid, voter_name)
+        cast_vote(tid, voter_name, pair_id, existing_vote_id=existing["id"] if existing else None)
+        if not existing:
+            existing = get_vote_by_name(tid, voter_name)
         flash("ההצבעה נשמרה!", "success")
-        return redirect(url_for("tournament_vote", tid=tid))
+        resp = redirect(url_for("tournament_vote", tid=tid))
+        resp.set_cookie(cookie_key, existing["id"], max_age=60 * 60 * 24 * 180)
+        return resp
 
     tally, total_votes = {}, 0
     if my_vote:
