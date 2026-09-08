@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.0.9"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.1.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -246,6 +246,24 @@ def create_pair(tournament_id, p1_id, p1_name, p1_phone, p2_id, p2_name, p2_phon
 
 def update_pair_group(pid, group_number):
     db_patch("padel_pairs", f"id=eq.{pid}", {"group_number": group_number})
+
+
+def list_votes(tid):
+    return db_get(f"/rest/v1/padel_votes?tournament_id=eq.{quote(tid)}&select=*")
+
+
+def get_user_vote(tid, user_id):
+    rows = db_get(
+        f"/rest/v1/padel_votes?tournament_id=eq.{quote(tid)}&user_id=eq.{quote(user_id)}&select=*"
+    )
+    return rows[0] if rows else None
+
+
+def cast_vote(tid, user_id, pair_id, existing_vote_id=None):
+    if existing_vote_id:
+        db_patch("padel_votes", f"id=eq.{existing_vote_id}", {"pair_id": pair_id})
+    else:
+        db_insert("padel_votes", {"tournament_id": tid, "user_id": user_id, "pair_id": pair_id})
 
 
 def list_matches(tid):
@@ -1282,6 +1300,42 @@ def tournament_detail(tid):
         winner_pair=winner_pair,
         editable_stages=editable,
         pending_stage=pending_stage,
+    )
+
+
+@app.route("/tournaments/<tid>/vote", methods=["GET", "POST"])
+@login_required
+def tournament_vote(tid):
+    tournament = get_tournament(tid)
+    if not tournament:
+        return redirect(url_for("index"))
+
+    user_id = session["user_id"]
+    pairs = list_pairs(tid)
+    my_vote = get_user_vote(tid, user_id)
+
+    if request.method == "POST":
+        if tournament["status"] != "full":
+            flash("ההצבעה לא פתוחה כרגע", "error")
+            return redirect(url_for("tournament_vote", tid=tid))
+        pair_id = request.form.get("pair_id", "")
+        if not any(p["id"] == pair_id for p in pairs):
+            flash("יש לבחור זוג מהרשימה", "error")
+            return redirect(url_for("tournament_vote", tid=tid))
+        cast_vote(tid, user_id, pair_id, existing_vote_id=my_vote["id"] if my_vote else None)
+        flash("ההצבעה נשמרה!", "success")
+        return redirect(url_for("tournament_vote", tid=tid))
+
+    tally, total_votes = {}, 0
+    if my_vote:
+        votes = list_votes(tid)
+        total_votes = len(votes)
+        for v in votes:
+            tally[v["pair_id"]] = tally.get(v["pair_id"], 0) + 1
+
+    return render_template(
+        "vote.html", tournament=tournament, pairs=pairs,
+        my_vote=my_vote, tally=tally, total_votes=total_votes,
     )
 
 

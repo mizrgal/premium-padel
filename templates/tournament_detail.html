@@ -151,6 +151,12 @@
     {% endif %}
   {% endif %}
 
+  {% if tournament.status == 'full' %}
+    <div class="card" style="max-width:420px; margin-bottom:20px;">
+      <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn-block btn-gold" style="text-align:center; text-decoration:none; display:block; box-sizing:border-box;">🗳️ הצבע/י למי שינצח</a>
+    </div>
+  {% endif %}
+
   {% if tournament.status in ('full', 'in_progress', 'completed') %}
     {% if tournament.status == 'full' and session.get('is_admin') %}
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">

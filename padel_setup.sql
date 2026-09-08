@@ -72,6 +72,17 @@ create table if not exists padel_match_videos (
   created_at timestamptz default now()
 );
 
+-- one prediction vote per user per tournament (who they think will win); re-voting
+-- updates the existing row rather than inserting a second one (see cast_vote in app.py)
+create table if not exists padel_votes (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references padel_tournaments(id),
+  user_id uuid not null references padel_users(id),
+  pair_id uuid not null references padel_pairs(id),
+  created_at timestamptz default now(),
+  unique (tournament_id, user_id)
+);
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then
@@ -83,3 +94,4 @@ end $$;
 create index if not exists idx_padel_pairs_tournament on padel_pairs(tournament_id);
 create index if not exists idx_padel_matches_tournament on padel_matches(tournament_id);
 create index if not exists idx_padel_match_videos_match on padel_match_videos(match_id);
+create index if not exists idx_padel_votes_tournament on padel_votes(tournament_id);

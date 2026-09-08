@@ -252,6 +252,30 @@ tr:last-child td { border-bottom: none; }
 .rank-badge-2 { background: #d9dce6; color: var(--navy); }
 .rank-badge-3 { background: #e3b28a; color: var(--navy); }
 
+.vote-form { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
+.vote-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1.5px solid #e3e3e8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.vote-option:hover { border-color: var(--gold); }
+.vote-option.selected { border-color: var(--gold); background: #fffaf0; }
+.vote-option input { width: auto; min-height: 0; margin: 0; }
+
+.vote-tally { display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
+.vote-tally-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.vote-tally-row.my-pick .vote-tally-label { font-weight: 700; color: var(--navy); }
+.vote-tally-label { font-size: 14px; }
+.vote-tally-count { font-size: 13px; color: #888; white-space: nowrap; }
+.vote-tally-bar-bg { grid-column: 1 / -1; background: var(--bg); border-radius: 999px; height: 10px; overflow: hidden; }
+.vote-tally-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), #ffd873); }
+
 .leaderboard { display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
 .leaderboard-card {
   display: flex;

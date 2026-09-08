@@ -1,0 +1,49 @@
+{% extends "base_app.html" %}
+{% from "macros.html" import pair_name, pair_name_text %}
+{% block title %}הצבעה – {{ tournament.name }}{% endblock %}
+{% block content %}
+  <h1>🗳️ מי ינצח ב{{ tournament.name }}?</h1>
+  <p class="muted" style="margin-top:-8px;">
+    📅 {{ tournament.date }}{% if tournament.location %} · 📍 {{ tournament.location }}{% endif %}
+  </p>
+
+  {% if tournament.status != 'full' %}
+    <p class="hint" style="margin-top:16px;">
+      {% if tournament.status == 'open' %}
+        ההצבעה תיפתח לאחר שההרשמה תיסגר ותתבצע ההגרלה.
+      {% elif tournament.status == 'in_progress' %}
+        ההצבעה נסגרה — הטורניר כבר התחיל.
+      {% else %}
+        ההצבעה נסגרה — הטורניר הסתיים.
+      {% endif %}
+    </p>
+  {% else %}
+    <form method="POST" class="vote-form">
+      {% for p in pairs %}
+        <label class="vote-option{{ ' selected' if my_vote and my_vote.pair_id == p.id else '' }}">
+          <input type="radio" name="pair_id" value="{{ p.id }}"
+                 {% if my_vote and my_vote.pair_id == p.id %}checked{% endif %} required>
+          <span>{{ pair_name_text(p) }}</span>
+        </label>
+      {% endfor %}
+      <button type="submit" class="btn-block btn-gold" style="margin-top:14px;">
+        {{ 'עדכן/י הצבעה' if my_vote else 'הצבע/י' }}
+      </button>
+    </form>
+
+    {% if my_vote %}
+      <h2 style="margin-top:28px;">תוצאות ההצבעה עד כה ({{ total_votes }} מצביעים)</h2>
+      <div class="vote-tally">
+        {% for p in pairs %}
+          {% set count = tally.get(p.id, 0) %}
+          {% set pct = (count / total_votes * 100) if total_votes else 0 %}
+          <div class="vote-tally-row{{ ' my-pick' if my_vote.pair_id == p.id else '' }}">
+            <div class="vote-tally-label">{{ pair_name(p) }}{% if my_vote.pair_id == p.id %} ⭐{% endif %}</div>
+            <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+            <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}
