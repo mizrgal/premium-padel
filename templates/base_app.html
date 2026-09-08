@@ -39,6 +39,28 @@
         document.activeElement.blur();
       }
     }, { passive: true });
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.copy-link-btn');
+      if (!btn) return;
+      var link = btn.dataset.copyLink;
+      var done = function () {
+        var original = btn.textContent;
+        btn.textContent = '✅ הועתק!';
+        setTimeout(function () { btn.textContent = original; }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(done);
+      } else {
+        var tmp = document.createElement('input');
+        tmp.value = link;
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand('copy');
+        document.body.removeChild(tmp);
+        done();
+      }
+    });
   </script>
 </body>
 </html>
