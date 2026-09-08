@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.1.4"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.1.5"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1351,20 +1351,7 @@ def tournament_vote(tid):
         resp.set_cookie(cookie_key, existing["id"], max_age=60 * 60 * 24 * 180)
         return resp
 
-    is_admin = session.get("is_admin")
-    tally, total_votes, votes = {}, 0, []
-    if my_vote or is_admin:
-        votes = list_votes(tid)
-        total_votes = len(votes)
-        for v in votes:
-            tally[v["pair_id"]] = tally.get(v["pair_id"], 0) + 1
-
-    return render_template(
-        "vote.html", tournament=tournament, pairs=pairs,
-        pairs_by_id={p["id"]: p for p in pairs},
-        my_vote=my_vote, tally=tally, total_votes=total_votes,
-        votes=votes if is_admin else None,
-    )
+    return render_template("vote.html", tournament=tournament, pairs=pairs, my_vote=my_vote)
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])
