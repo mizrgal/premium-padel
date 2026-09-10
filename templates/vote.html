@@ -17,6 +17,19 @@
         ההצבעה נסגרה — הטורניר הסתיים.
       {% endif %}
     </p>
+  {% elif tournament.votes_revealed %}
+    <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
+    <div class="vote-tally">
+      {% for p in pairs %}
+        {% set count = tally.get(p.id, 0) %}
+        {% set pct = (count / total_votes * 100) if total_votes else 0 %}
+        <div class="vote-tally-row">
+          <div class="vote-tally-label">{{ pair_name_text(p) }}</div>
+          <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+          <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
     <p class="hint" style="margin:10px 0 16px;">כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
     <form method="POST" class="vote-form">
@@ -33,5 +46,12 @@
         {{ 'עדכן/י הצבעה' if my_vote else 'הצבע/י' }}
       </button>
     </form>
+
+    {% if session.get('is_admin') %}
+      <form method="POST" action="{{ url_for('close_voting_route', tid=tournament.id) }}"
+            style="margin-top:20px;" onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
+        <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
+      </form>
+    {% endif %}
   {% endif %}
 {% endblock %}

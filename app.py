@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.1.6"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.1.7"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -275,6 +275,10 @@ def cast_vote(tid, voter_name, pair_id, existing_vote_id=None):
         db_patch("padel_votes", f"id=eq.{existing_vote_id}", {"pair_id": pair_id})
     else:
         db_insert("padel_votes", {"tournament_id": tid, "voter_name": voter_name, "pair_id": pair_id})
+
+
+def close_voting(tid):
+    db_patch("padel_tournaments", f"id=eq.{tid}", {"votes_revealed": True})
 
 
 def list_matches(tid):
@@ -1330,8 +1334,8 @@ def tournament_vote(tid):
         my_vote = get_vote(voted_id)
 
     if request.method == "POST":
-        if tournament["status"] != "full":
-            flash("ההצבעה לא פתוחה כרגע", "error")
+        if tournament["status"] != "full" or tournament.get("votes_revealed"):
+            flash("ההצבעה סגורה", "error")
             return redirect(url_for("tournament_vote", tid=tid))
         voter_name = request.form.get("voter_name", "").strip()
         pair_id = request.form.get("pair_id", "")
@@ -1351,7 +1355,28 @@ def tournament_vote(tid):
         resp.set_cookie(cookie_key, existing["id"], max_age=60 * 60 * 24 * 180)
         return resp
 
-    return render_template("vote.html", tournament=tournament, pairs=pairs, my_vote=my_vote)
+    tally, total_votes = {}, 0
+    if tournament.get("votes_revealed"):
+        votes = list_votes(tid)
+        total_votes = len(votes)
+        for v in votes:
+            tally[v["pair_id"]] = tally.get(v["pair_id"], 0) + 1
+
+    return render_template(
+        "vote.html", tournament=tournament, pairs=pairs, my_vote=my_vote,
+        tally=tally, total_votes=total_votes,
+    )
+
+
+@app.route("/tournaments/<tid>/vote/close", methods=["POST"])
+@admin_required
+def close_voting_route(tid):
+    tournament = get_tournament(tid)
+    if not tournament:
+        return redirect(url_for("index"))
+    close_voting(tid)
+    flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
+    return redirect(url_for("tournament_vote", tid=tid))
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])

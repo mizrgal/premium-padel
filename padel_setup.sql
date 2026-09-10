@@ -26,6 +26,7 @@ create table if not exists padel_tournaments (
   location text,
   status text not null default 'open', -- open -> full -> in_progress -> completed
   winner_pair_id uuid,
+  votes_revealed boolean not null default false, -- admin closed voting & published the anonymous tally
   created_by uuid references padel_users(id),
   created_at timestamptz default now()
 );
@@ -92,6 +93,9 @@ begin
       add constraint winner_pair_fk foreign key (winner_pair_id) references padel_pairs(id);
   end if;
 end $$;
+
+-- pre-existing databases: add votes_revealed if it isn't there yet
+alter table padel_tournaments add column if not exists votes_revealed boolean not null default false;
 
 create index if not exists idx_padel_pairs_tournament on padel_pairs(tournament_id);
 create index if not exists idx_padel_matches_tournament on padel_matches(tournament_id);
