@@ -152,10 +152,16 @@
   {% endif %}
 
   {% if tournament.status == 'full' %}
-    <div style="margin-bottom:20px;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
       <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn btn-gold">
         {{ '📊 תוצאות ההצבעה' if tournament.votes_revealed else '🗳️ הצבע/י למי שינצח' }}
       </a>
+      {% if session.get('is_admin') and not tournament.votes_revealed %}
+        <form method="POST" action="{{ url_for('close_voting_route', tid=tournament.id) }}"
+              onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
+          <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
+        </form>
+      {% endif %}
     </div>
   {% endif %}
 
