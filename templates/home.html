@@ -1,5 +1,4 @@
 {% extends "base_app.html" %}
-{% from "macros.html" import avatar %}
 {% block title %}עמוד הבית – Premium Padel{% endblock %}
 {% block content %}
   <h1>🏠 עמוד הבית</h1>
@@ -11,18 +10,12 @@
       {% if not leaderboard %}
         <p class="muted">עדיין אין מספיק משחקים כדי לחשב דירוג.</p>
       {% else %}
-        <div class="leaderboard">
+        <div class="stat-list">
           {% for row in leaderboard %}
-            <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="leaderboard-card">
-              <span class="rank-badge rank-badge-{{ loop.index }} leaderboard-rank">{{ loop.index }}</span>
-              {{ avatar(row.user, 44) }}
-              <div class="leaderboard-info">
-                <div class="leaderboard-name">{{ row.user.username }}</div>
-                {% if row.championships %}
-                  <div class="player-trophies">{{ '🏆' * row.championships }}</div>
-                {% endif %}
-                <div class="leaderboard-stats">{{ (row.win_pct)|round(0, 'floor')|int }}% · {{ row.wins }}/{{ row.played }}</div>
-              </div>
+            <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="stat-row">
+              <span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span>
+              <span class="stat-label">{{ row.user.username }}{% if row.championships %} {{ '🏆' * row.championships }}{% endif %}</span>
+              <span class="stat-value">{{ (row.win_pct)|round(0, 'floor')|int }}% · {{ row.wins }}/{{ row.played }}</span>
             </a>
           {% endfor %}
         </div>
