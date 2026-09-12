@@ -151,17 +151,30 @@
     {% endif %}
   {% endif %}
 
-  {% if tournament.status == 'full' %}
+  {% if tournament.status == 'full' and not tournament.votes_revealed %}
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
-      <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn btn-gold">
-        {{ '📊 תוצאות ההצבעה' if tournament.votes_revealed else '🗳️ הצבע/י למי שינצח' }}
-      </a>
-      {% if session.get('is_admin') and not tournament.votes_revealed %}
+      <a href="{{ url_for('tournament_vote', tid=tournament.id) }}" class="btn btn-gold">🗳️ הצבע/י למי שינצח</a>
+      {% if session.get('is_admin') %}
         <form method="POST" action="{{ url_for('close_voting_route', tid=tournament.id) }}"
               onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
           <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
         </form>
       {% endif %}
+    </div>
+  {% endif %}
+
+  {% if tournament.votes_revealed %}
+    <h2>🗳️ ניחוש הקהל לפני הטורניר ({{ vote_total }} מצביעים)</h2>
+    <div class="vote-tally" style="margin-bottom:20px;">
+      {% for p in pairs %}
+        {% set count = vote_tally.get(p.id, 0) %}
+        {% set pct = (count / vote_total * 100) if vote_total else 0 %}
+        <div class="vote-tally-row{{ ' my-pick' if tournament.winner_pair_id == p.id else '' }}">
+          <div class="vote-tally-label">{{ pair_name(p) }}{% if tournament.winner_pair_id == p.id %} 🏆{% endif %}</div>
+          <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+          <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+        </div>
+      {% endfor %}
     </div>
   {% endif %}
 

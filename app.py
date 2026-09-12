@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.1.8"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.1.9"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1303,6 +1303,13 @@ def tournament_detail(tid):
     editable = editable_stages(tournament, matches)
     pending_stage = stage_pending_advance(tournament, matches)
 
+    vote_tally, vote_total = {}, 0
+    if tournament.get("votes_revealed"):
+        votes = list_votes(tid)
+        vote_total = len(votes)
+        for v in votes:
+            vote_tally[v["pair_id"]] = vote_tally.get(v["pair_id"], 0) + 1
+
     return render_template(
         "tournament_detail.html",
         tournament=tournament,
@@ -1315,6 +1322,8 @@ def tournament_detail(tid):
         winner_pair=winner_pair,
         editable_stages=editable,
         pending_stage=pending_stage,
+        vote_tally=vote_tally,
+        vote_total=vote_total,
     )
 
 
