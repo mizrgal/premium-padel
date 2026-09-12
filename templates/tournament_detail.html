@@ -163,21 +163,6 @@
     </div>
   {% endif %}
 
-  {% if tournament.votes_revealed %}
-    <h2>🗳️ ניחוש הקהל לפני הטורניר ({{ vote_total }} מצביעים)</h2>
-    <div class="vote-tally" style="margin-bottom:20px;">
-      {% for p in pairs %}
-        {% set count = vote_tally.get(p.id, 0) %}
-        {% set pct = (count / vote_total * 100) if vote_total else 0 %}
-        <div class="vote-tally-row{{ ' my-pick' if tournament.winner_pair_id == p.id else '' }}">
-          <div class="vote-tally-label">{{ pair_name(p) }}{% if tournament.winner_pair_id == p.id %} 🏆{% endif %}</div>
-          <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
-          <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
   {% if tournament.status in ('full', 'in_progress', 'completed') %}
     {% if tournament.status == 'full' and session.get('is_admin') %}
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
@@ -311,6 +296,23 @@
         {% endfor %}
       </div>
     {% endfor %}
+  {% endif %}
+
+  {% if tournament.votes_revealed %}
+    <details class="card about-card">
+      <summary>🗳️ ניחוש הקהל לפני הטורניר ({{ vote_total }} מצביעים)</summary>
+      <div class="vote-tally" style="padding:0 20px 20px;">
+        {% for p in pairs %}
+          {% set count = vote_tally.get(p.id, 0) %}
+          {% set pct = (count / vote_total * 100) if vote_total else 0 %}
+          <div class="vote-tally-row{{ ' my-pick' if tournament.winner_pair_id == p.id else '' }}">
+            <div class="vote-tally-label">{{ pair_name(p) }}{% if tournament.winner_pair_id == p.id %} 🏆{% endif %}</div>
+            <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+            <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
   {% endif %}
 
   <script src="{{ url_for('static', filename='pair-slots.js') }}"></script>
