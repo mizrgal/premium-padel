@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.2.2"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.2.3"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -867,10 +867,17 @@ def build_rivalries(top_n=3, min_matches=2):
     for key, r in rivalries.items():
         if r["matches"] < min_matches:
             continue
+        # frozenset iteration order is arbitrary (and can even change between server
+        # restarts) - always put the head-to-head leader first so "X vs Y (3-0)" reads
+        # unambiguously and consistently instead of flipping randomly on every deploy.
         ua, ub = tuple(key)
+        wins_a, wins_b = r["wins"][ua], r["wins"][ub]
+        if wins_a < wins_b or (wins_a == wins_b and users_by_id[ua]["username"] > users_by_id[ub]["username"]):
+            ua, ub = ub, ua
+            wins_a, wins_b = wins_b, wins_a
         rivalry_rows.append({
             "a": users_by_id[ua], "b": users_by_id[ub],
-            "matches": r["matches"], "wins_a": r["wins"][ua], "wins_b": r["wins"][ub],
+            "matches": r["matches"], "wins_a": wins_a, "wins_b": wins_b,
         })
     rivalry_rows.sort(key=lambda r: (-r["matches"], abs(r["wins_a"] - r["wins_b"])))
     return rivalry_rows[:top_n]
