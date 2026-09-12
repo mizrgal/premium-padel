@@ -2,26 +2,85 @@
 {% from "macros.html" import avatar %}
 {% block title %}עמוד הבית – Premium Padel{% endblock %}
 {% block content %}
-  <h1>🥇 שלושת השחקנים המובילים</h1>
-  <p class="muted" style="margin-top:-8px;">דירוג לפי אחוז ניצחונות (בקרב שחקנים עם 3 משחקים לפחות)</p>
+  <h1>🏠 עמוד הבית</h1>
 
-  {% if not leaderboard %}
-    <p class="muted">עדיין אין מספיק משחקים כדי לחשב דירוג.</p>
-  {% else %}
-    <div class="leaderboard">
-      {% for row in leaderboard %}
-        <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="leaderboard-card">
-          <span class="rank-badge rank-badge-{{ loop.index }} leaderboard-rank">{{ loop.index }}</span>
-          {{ avatar(row.user, 56) }}
-          <div class="leaderboard-info">
-            <div class="leaderboard-name">{{ row.user.username }}</div>
-            {% if row.championships %}
-              <div class="player-trophies">{{ '🏆' * row.championships }}</div>
-            {% endif %}
-            <div class="leaderboard-stats">{{ (row.win_pct)|round(0, 'floor')|int }}% ניצחונות · {{ row.wins }}/{{ row.played }} משחקים</div>
-          </div>
-        </a>
-      {% endfor %}
+  <div class="home-grid">
+    <div class="home-card">
+      <h2>🥇 שלושת השחקנים המובילים</h2>
+      <p class="muted" style="margin-top:-4px;">לפי אחוז ניצחונות (3 משחקים לפחות)</p>
+      {% if not leaderboard %}
+        <p class="muted">עדיין אין מספיק משחקים כדי לחשב דירוג.</p>
+      {% else %}
+        <div class="leaderboard">
+          {% for row in leaderboard %}
+            <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="leaderboard-card">
+              <span class="rank-badge rank-badge-{{ loop.index }} leaderboard-rank">{{ loop.index }}</span>
+              {{ avatar(row.user, 44) }}
+              <div class="leaderboard-info">
+                <div class="leaderboard-name">{{ row.user.username }}</div>
+                {% if row.championships %}
+                  <div class="player-trophies">{{ '🏆' * row.championships }}</div>
+                {% endif %}
+                <div class="leaderboard-stats">{{ (row.win_pct)|round(0, 'floor')|int }}% · {{ row.wins }}/{{ row.played }}</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
-  {% endif %}
+
+    <div class="home-card">
+      <h2>🔮 המנחשים הכי טובים</h2>
+      <p class="muted" style="margin-top:-4px;">מי הכי מדייק בהצבעות "מי ינצח"</p>
+      {% if not predictors %}
+        <p class="muted">עדיין אין תוצאות הצבעה סגורות להשוואה.</p>
+      {% else %}
+        <div class="stat-list">
+          {% for row in predictors %}
+            <div class="stat-row">
+              <span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span>
+              <span class="stat-label">{{ row.name }}</span>
+              <span class="stat-value">{{ row.correct }}/{{ row.total }} ({{ row.pct|round(0,'floor')|int }}%)</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="home-card">
+      <h2>🔥 הרצף החם</h2>
+      <p class="muted" style="margin-top:-4px;">שיאני הניצחונות הרצופים כרגע</p>
+      {% if not hot_streaks %}
+        <p class="muted">אין כרגע רצף ניצחונות פעיל (2+).</p>
+      {% else %}
+        <div class="stat-list">
+          {% for row in hot_streaks %}
+            <a href="{{ url_for('player_detail', pid=row.user.id) }}" class="stat-row">
+              <span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span>
+              <span class="stat-label">{{ row.user.username }}</span>
+              <span class="stat-value">🔥 {{ row.streak }} ברצף</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="home-card">
+      <h2>⚔️ היריבויות הכי חמות</h2>
+      <p class="muted" style="margin-top:-4px;">מי נתקל במי הכי הרבה על המגרש</p>
+      {% if not rivalries %}
+        <p class="muted">עדיין אין מספיק משחקים חוזרים בין אותם שחקנים.</p>
+      {% else %}
+        <div class="stat-list">
+          {% for row in rivalries %}
+            <div class="stat-row">
+              <span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span>
+              <span class="stat-label">{{ row.a.username }} נגד {{ row.b.username }}</span>
+              <span class="stat-value">{{ row.matches }} משחקים ({{ row.wins_a }}-{{ row.wins_b }})</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}

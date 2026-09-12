@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.1.10"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.2.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -768,6 +768,114 @@ def build_leaderboard(min_games=3, top_n=3):
     return leaderboard[:top_n]
 
 
+def build_predictors(top_n=3, min_predictions=1):
+    """Rank voters by prediction accuracy across every tournament whose poll was closed
+    (votes_revealed) and that ended with a winner. Voting has no login, so a voter's
+    identity is just the free-text name they typed (case-insensitive, as in
+    get_vote_by_name)."""
+    stats = {}
+    for t in list_tournaments():
+        if not t.get("votes_revealed") or not t.get("winner_pair_id"):
+            continue
+        for v in list_votes(t["id"]):
+            key = v["voter_name"].strip().lower()
+            s = stats.setdefault(key, {"name": v["voter_name"], "correct": 0, "total": 0})
+            s["total"] += 1
+            if v["pair_id"] == t["winner_pair_id"]:
+                s["correct"] += 1
+
+    predictors = [
+        {"name": s["name"], "correct": s["correct"], "total": s["total"],
+         "pct": s["correct"] / s["total"] * 100}
+        for s in stats.values() if s["total"] >= min_predictions
+    ]
+    predictors.sort(key=lambda r: (-r["pct"], -r["total"], r["name"]))
+    return predictors[:top_n]
+
+
+def build_hot_streaks(top_n=3, min_streak=2):
+    """Current active win streak per user - consecutive wins counting back from their most
+    recent match. Matches don't record when they were played, so (tournament date, stage,
+    match_index) is the best available stand-in for chronological order."""
+    users_by_id = {u["id"]: u for u in list_users()}
+    pairs_by_id = {p["id"]: p for p in db_get("/rest/v1/padel_pairs?select=*")}
+    tournaments_by_id = {t["id"]: t for t in list_tournaments()}
+    all_matches = db_get("/rest/v1/padel_matches?select=*")
+
+    per_user = {uid: [] for uid in users_by_id}
+    for m in all_matches:
+        if m["winner_pair_id"] is None:
+            continue
+        t = tournaments_by_id.get(m["tournament_id"])
+        if not t:
+            continue
+        for pid, is_winner in ((m["pair_a_id"], m["winner_pair_id"] == m["pair_a_id"]),
+                                (m["pair_b_id"], m["winner_pair_id"] == m["pair_b_id"])):
+            pair = pairs_by_id.get(pid)
+            if not pair:
+                continue
+            for uid in (pair.get("player1_id"), pair.get("player2_id")):
+                if uid in per_user:
+                    per_user[uid].append({
+                        "sort_key": (t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"]),
+                        "won": is_winner,
+                    })
+
+    streaks = []
+    for uid, matches in per_user.items():
+        matches.sort(key=lambda mm: mm["sort_key"])
+        streak = 0
+        for mm in reversed(matches):
+            if not mm["won"]:
+                break
+            streak += 1
+        if streak >= min_streak:
+            streaks.append({"user": users_by_id[uid], "streak": streak})
+
+    streaks.sort(key=lambda r: (-r["streak"], r["user"]["username"]))
+    return streaks[:top_n]
+
+
+def build_rivalries(top_n=3, min_matches=2):
+    """The player-vs-player matchups (as individuals, regardless of who their partner was
+    each time) with the most head-to-head encounters - ranked by total matches, then by how
+    close the record is (a tighter head-to-head reads as a "hotter" rivalry than a blowout)."""
+    users_by_id = {u["id"]: u for u in list_users()}
+    pairs_by_id = {p["id"]: p for p in db_get("/rest/v1/padel_pairs?select=*")}
+    all_matches = db_get("/rest/v1/padel_matches?select=*")
+
+    rivalries = {}
+    for m in all_matches:
+        if m["winner_pair_id"] is None:
+            continue
+        pair_a = pairs_by_id.get(m["pair_a_id"])
+        pair_b = pairs_by_id.get(m["pair_b_id"])
+        if not pair_a or not pair_b:
+            continue
+        a_players = [pid for pid in (pair_a.get("player1_id"), pair_a.get("player2_id")) if pid in users_by_id]
+        b_players = [pid for pid in (pair_b.get("player1_id"), pair_b.get("player2_id")) if pid in users_by_id]
+        winner_is_a = m["winner_pair_id"] == m["pair_a_id"]
+        for ua in a_players:
+            for ub in b_players:
+                r = rivalries.setdefault(frozenset((ua, ub)), {"matches": 0, "wins": {}})
+                r["matches"] += 1
+                r["wins"][ua] = r["wins"].get(ua, 0)
+                r["wins"][ub] = r["wins"].get(ub, 0)
+                r["wins"][ua if winner_is_a else ub] += 1
+
+    rivalry_rows = []
+    for key, r in rivalries.items():
+        if r["matches"] < min_matches:
+            continue
+        ua, ub = tuple(key)
+        rivalry_rows.append({
+            "a": users_by_id[ua], "b": users_by_id[ub],
+            "matches": r["matches"], "wins_a": r["wins"][ua], "wins_b": r["wins"][ub],
+        })
+    rivalry_rows.sort(key=lambda r: (-r["matches"], abs(r["wins_a"] - r["wins_b"])))
+    return rivalry_rows[:top_n]
+
+
 def build_profile_history(user_id):
     """One entry per tournament the user has a pair in: who their partner was, whether
     they were crowned champion, and every match their pair played with its result."""
@@ -844,8 +952,13 @@ def build_player_profile_data(user_id):
 @app.route("/")
 @login_required
 def index():
-    leaderboard = build_leaderboard()
-    return render_template("home.html", leaderboard=leaderboard)
+    return render_template(
+        "home.html",
+        leaderboard=build_leaderboard(),
+        predictors=build_predictors(),
+        hot_streaks=build_hot_streaks(),
+        rivalries=build_rivalries(),
+    )
 
 
 @app.route("/players/<pid>")
