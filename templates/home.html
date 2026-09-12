@@ -68,8 +68,8 @@
           {% for row in rivalries %}
             <div class="stat-row">
               <span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span>
-              <span class="stat-label">{{ row.a.username }} נגד {{ row.b.username }}</span>
-              <span class="stat-value">{{ row.matches }} משחקים ({{ row.wins_a }}-{{ row.wins_b }})</span>
+              <span class="stat-label">{{ row.a.username }} {{ row.wins_a }}-{{ row.wins_b }} {{ row.b.username }}</span>
+              <span class="stat-value">{{ row.matches }} משחקים</span>
             </div>
           {% endfor %}
         </div>
