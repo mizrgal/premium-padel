@@ -86,6 +86,24 @@ create table if not exists padel_votes (
 create unique index if not exists idx_padel_votes_unique_voter
   on padel_votes (tournament_id, lower(voter_name));
 
+-- one-off "fun superlatives" group survey, not tied to any tournament. One answer per
+-- (respondent, question) - re-submitting the same name updates their answers.
+create table if not exists padel_fun_survey_responses (
+  id uuid primary key default gen_random_uuid(),
+  respondent_name text not null,
+  question_key text not null,
+  answer_name text not null,
+  created_at timestamptz default now()
+);
+create unique index if not exists idx_fun_survey_unique_voter
+  on padel_fun_survey_responses (lower(respondent_name), question_key);
+
+create table if not exists padel_fun_survey_meta (
+  id int primary key default 1,
+  revealed boolean not null default false
+);
+insert into padel_fun_survey_meta (id, revealed) values (1, false) on conflict (id) do nothing;
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then
@@ -101,3 +119,4 @@ create index if not exists idx_padel_pairs_tournament on padel_pairs(tournament_
 create index if not exists idx_padel_matches_tournament on padel_matches(tournament_id);
 create index if not exists idx_padel_match_videos_match on padel_match_videos(match_id);
 create index if not exists idx_padel_votes_tournament on padel_votes(tournament_id);
+create index if not exists idx_fun_survey_question on padel_fun_survey_responses(question_key);

@@ -1,0 +1,40 @@
+{% extends "base_app.html" %}
+{% block title %}סקר כיפי – Premium Padel{% endblock %}
+{% block content %}
+  <h1>😂 סקר כיפי</h1>
+  <p class="muted" style="margin-top:-8px;">סקר קבוצתי חד-פעמי, לא קשור לטורניר מסוים</p>
+
+  {% if state.revealed %}
+    <h2 style="margin-top:24px;">🏆 התוצאות</h2>
+    <div class="stat-list" style="max-width:560px;">
+      {% for key, text in questions %}
+        {% set ranked = results.get(key, []) %}
+        <div class="stat-row" style="height:auto; padding:10px 0;">
+          <span class="stat-label" style="flex:2; white-space:normal;">{{ text }}</span>
+          <span class="stat-value">{% if ranked %}{{ ranked[0].name }} ({{ ranked[0].count }}){% else %}—{% endif %}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint" style="margin:10px 0 16px;">ענה/י בכנות 😄 — כל אדם יכול למלא פעם אחת (לפי השם), ואפשר לערוך את התשובות כל עוד הסקר פתוח.</p>
+    <form method="POST" class="vote-form" style="max-width:520px;">
+      <input type="text" name="respondent_name" placeholder="השם המלא שלך" required minlength="2"
+             value="{{ my_name }}" style="margin-bottom:6px;">
+      {% for key, text in questions %}
+        <label style="display:block; margin-top:12px; margin-bottom:4px; font-weight:600;">{{ text }}</label>
+        <input type="text" name="{{ key }}" placeholder="שם..." required minlength="2"
+               value="{{ existing[key].answer_name if key in existing else '' }}">
+      {% endfor %}
+      <button type="submit" class="btn-block btn-gold" style="margin-top:16px;">
+        {{ 'עדכן/י תשובות' if existing else 'שליחה' }}
+      </button>
+    </form>
+
+    {% if session.get('is_admin') %}
+      <form method="POST" action="{{ url_for('close_fun_survey_route') }}" style="margin-top:20px;"
+            onsubmit="return confirm('לסגור את הסקר ולפרסם את התוצאות? אי אפשר לענות יותר אחרי זה.');">
+        <button type="submit" class="btn btn-outline">🔒 סגור סקר ופרסם תוצאות</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}

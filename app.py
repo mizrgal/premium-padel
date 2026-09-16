@@ -10,7 +10,7 @@ import string
 import time
 import urllib.error
 import urllib.request
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from flask import (Flask, flash, jsonify, redirect, render_template, request,
                     session, url_for)
@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.2.5"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.3.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -55,6 +55,17 @@ STATUS_LABELS = {
     "completed": "הסתיים",
 }
 app.jinja_env.globals["STATUS_LABELS"] = STATUS_LABELS
+
+# one-off group "superlatives" survey, not tied to any tournament - see fun_survey()
+FUN_SURVEY_QUESTIONS = [
+    ("best_player", "מי שחקן הפאדל הכי טוב בקבוצה?"),
+    ("best_right", "מי שחקן ימין הכי טוב?"),
+    ("best_left", "מי שחקן שמאל הכי טוב?"),
+    ("fun_to_beat", "את מי הכי כיף לנצח?"),
+    ("bad_loser", "מי לא יודע להפסיד?"),
+    ("talks_big", "מי מדבר ברמה 5 אבל שחקן רמה 3?"),
+    ("paris_partner", "את מי היית לוקח איתך לטורניר בפריז?"),
+]
 
 _ssl_ctx = ssl.create_default_context()
 
@@ -279,6 +290,53 @@ def cast_vote(tid, voter_name, pair_id, existing_vote_id=None):
 
 def close_voting(tid):
     db_patch("padel_tournaments", f"id=eq.{tid}", {"votes_revealed": True})
+
+
+def get_survey_state():
+    rows = db_get("/rest/v1/padel_fun_survey_meta?id=eq.1&select=*")
+    return rows[0] if rows else {"id": 1, "revealed": False}
+
+
+def close_fun_survey():
+    db_patch("padel_fun_survey_meta", "id=eq.1", {"revealed": True})
+
+
+def get_survey_answers_by_name(respondent_name):
+    """{question_key: response_row} already saved for this person (case-insensitive name
+    match - same identity model as the tournament vote, no login for this survey either)."""
+    normalized = respondent_name.strip().lower()
+    rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
+    return {r["question_key"]: r for r in rows if r["respondent_name"].strip().lower() == normalized}
+
+
+def submit_survey_answers(respondent_name, answers, existing):
+    """answers: {question_key: answer_name}. existing: {question_key: row} already on file
+    for this respondent - updates those in place instead of inserting duplicates."""
+    for qkey, answer_name in answers.items():
+        existing_row = existing.get(qkey)
+        if existing_row:
+            db_patch("padel_fun_survey_responses", f"id=eq.{existing_row['id']}", {"answer_name": answer_name})
+        else:
+            db_insert("padel_fun_survey_responses", {
+                "respondent_name": respondent_name, "question_key": qkey, "answer_name": answer_name,
+            })
+
+
+def build_survey_results():
+    """{question_key: [{"name", "count"}, ...]} - answers grouped case-insensitively and
+    ranked most-mentioned first, per question."""
+    rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
+    by_question = {}
+    for r in rows:
+        bucket = by_question.setdefault(r["question_key"], {})
+        name_key = r["answer_name"].strip().lower()
+        entry = bucket.setdefault(name_key, {"name": r["answer_name"].strip(), "count": 0})
+        entry["count"] += 1
+
+    results = {}
+    for qkey, bucket in by_question.items():
+        results[qkey] = sorted(bucket.values(), key=lambda v: (-v["count"], v["name"]))
+    return results
 
 
 def list_matches(tid):
@@ -1506,6 +1564,52 @@ def close_voting_route(tid):
     close_voting(tid)
     flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
     return redirect(url_for("tournament_vote", tid=tid))
+
+
+@app.route("/survey", methods=["GET", "POST"])
+def fun_survey():
+    """No login required, same as the tournament vote - a free-text name is the only
+    identity. One set of answers per person (by name), editable until an admin closes it."""
+    state = get_survey_state()
+    cookie_key = "pp_survey_name"
+    my_name = unquote(request.cookies.get(cookie_key, ""))
+    existing = get_survey_answers_by_name(my_name) if my_name else {}
+
+    if request.method == "POST":
+        if state.get("revealed"):
+            flash("הסקר סגור", "error")
+            return redirect(url_for("fun_survey"))
+        respondent_name = request.form.get("respondent_name", "").strip()
+        if len(respondent_name) < 2:
+            flash("יש להזין שם מלא", "error")
+            return redirect(url_for("fun_survey"))
+        answers = {}
+        for qkey, _ in FUN_SURVEY_QUESTIONS:
+            val = request.form.get(qkey, "").strip()
+            if len(val) < 2:
+                flash("יש למלא תשובה לכל השאלות", "error")
+                return redirect(url_for("fun_survey"))
+            answers[qkey] = val
+
+        submit_survey_answers(respondent_name, answers, get_survey_answers_by_name(respondent_name))
+        flash("התשובות נשמרו!", "success")
+        resp = redirect(url_for("fun_survey"))
+        resp.set_cookie(cookie_key, quote(respondent_name), max_age=60 * 60 * 24 * 180)
+        return resp
+
+    results = build_survey_results() if state.get("revealed") else {}
+    return render_template(
+        "survey.html", questions=FUN_SURVEY_QUESTIONS, state=state,
+        my_name=my_name, existing=existing, results=results,
+    )
+
+
+@app.route("/survey/close", methods=["POST"])
+@admin_required
+def close_fun_survey_route():
+    close_fun_survey()
+    flash("הסקר נסגר והתוצאות פורסמו", "success")
+    return redirect(url_for("fun_survey"))
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])

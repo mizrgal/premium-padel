@@ -15,6 +15,7 @@
     <div class="topbar-links">
       <a href="{{ url_for('index') }}">🥇 עמוד הבית</a>
       <a href="{{ url_for('tournaments_list') }}">🏠 כל הטורנירים</a>
+      <a href="{{ url_for('fun_survey') }}">😂 סקר כיפי</a>
       {% if session.get('is_admin') %}
         <a href="{{ url_for('tournament_new') }}">+ טורניר חדש</a>
         <a href="{{ url_for('admin_users') }}">משתמשים</a>
