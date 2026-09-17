@@ -25,7 +25,7 @@
       <a href="{{ url_for('logout') }}">התנתקות</a>
     </div>
   </div>
-  <div class="page">
+  <div class="page {% block page_class %}{% endblock %}">
     {% for category, message in get_flashed_messages(with_categories=true) %}
       <div class="flash flash-{{ category }}">{{ message }}</div>
     {% endfor %}

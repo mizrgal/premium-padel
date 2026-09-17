@@ -130,6 +130,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .topbar-links a:hover { opacity: 1; }
 
 .page { max-width: 960px; margin: 0 auto; padding: 20px 16px 60px; }
+.page.page-wide { max-width: 1400px; }
 .page h1 { font-size: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .page h2 { font-size: 16px; margin: 22px 0 10px; }
 
@@ -297,9 +298,9 @@ a.stat-row:hover { background: var(--bg); }
 
 .bar-chart {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: 14px;
-  overflow-x: auto;
+  gap: 14px 10px;
   padding: 70px 6px 8px;
   margin-bottom: 12px;
 }
