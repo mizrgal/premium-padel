@@ -1,0 +1,26 @@
+{% extends "base_app.html" %}
+{% block title %}תוצאות הסקר (אדמין) – Premium Padel{% endblock %}
+{% block content %}
+  <h1>📊 תוצאות הסקר הכיפי</h1>
+  <p class="muted" style="margin-top:-8px;">למנהל/ת בלבד — כולל מי ענה מה. לא גלוי לאף אחד אחר, גם לא לאחר סגירת הסקר.</p>
+
+  {% for key, text in questions %}
+    {% set entries = breakdown.get(key, []) %}
+    <h2 style="margin-top:32px;">{{ text }}</h2>
+    {% if not entries %}
+      <p class="muted">אין עדיין תשובות.</p>
+    {% else %}
+      {% set max_count = entries[0].voters|length %}
+      <div class="bar-chart">
+        {% for e in entries %}
+          <div class="bar-col">
+            <div class="bar-voters">{{ e.voters|join(', ') }}</div>
+            <div class="bar" style="height:{{ (e.voters|length / max_count * 140)|round(0,'ceil')|int }}px;"></div>
+            <div class="bar-count">{{ e.voters|length }}</div>
+            <div class="bar-label">{{ e.name }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endblock %}

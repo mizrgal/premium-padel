@@ -4,6 +4,12 @@
   <h1>😂 סקר כיפי</h1>
   <p class="muted" style="margin-top:-8px;">סקר קבוצתי חד-פעמי, לא קשור לטורניר מסוים</p>
 
+  {% if session.get('is_admin') %}
+    <div style="margin-bottom:16px;">
+      <a href="{{ url_for('fun_survey_admin') }}" class="btn btn-outline">📊 פירוט מלא (אדמין בלבד)</a>
+    </div>
+  {% endif %}
+
   {% if state.revealed %}
     <h2 style="margin-top:24px;">🏆 התוצאות</h2>
     <div class="stat-list" style="max-width:560px;">

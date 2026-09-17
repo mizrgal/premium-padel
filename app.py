@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.3.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.3.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -337,6 +337,26 @@ def build_survey_results():
     for qkey, bucket in by_question.items():
         results[qkey] = sorted(bucket.values(), key=lambda v: (-v["count"], v["name"]))
     return results
+
+
+def build_survey_admin_breakdown():
+    """Per question: every distinct answer (grouped case-insensitively, same as
+    build_survey_results) with the full list of respondents who gave it - admin-only, unlike
+    the public reveal which never attributes an answer to who said it. A joke/embellished
+    answer (e.g. "רום בשביל הזונות") naturally stays its own bar since it's a different exact
+    string from a plain "רום" - no fuzzy matching needed."""
+    rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
+    by_question = {}
+    for r in rows:
+        bucket = by_question.setdefault(r["question_key"], {})
+        name_key = r["answer_name"].strip().lower()
+        entry = bucket.setdefault(name_key, {"name": r["answer_name"].strip(), "voters": []})
+        entry["voters"].append(r["respondent_name"])
+
+    breakdown = {}
+    for qkey, bucket in by_question.items():
+        breakdown[qkey] = sorted(bucket.values(), key=lambda v: (-len(v["voters"]), v["name"]))
+    return breakdown
 
 
 def list_matches(tid):
@@ -1610,6 +1630,15 @@ def close_fun_survey_route():
     close_fun_survey()
     flash("הסקר נסגר והתוצאות פורסמו", "success")
     return redirect(url_for("fun_survey"))
+
+
+@app.route("/survey/admin")
+@admin_required
+def fun_survey_admin():
+    return render_template(
+        "survey_admin.html", questions=FUN_SURVEY_QUESTIONS,
+        breakdown=build_survey_admin_breakdown(),
+    )
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])
