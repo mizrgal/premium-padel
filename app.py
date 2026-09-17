@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.3.8"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.3.9"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1655,6 +1655,7 @@ def fun_survey():
     return render_template(
         "survey.html", questions=FUN_SURVEY_QUESTIONS, state=state,
         my_name=my_name, existing=existing, results=results,
+        insights=state.get("insights") if state.get("revealed") else None,
     )
 
 
