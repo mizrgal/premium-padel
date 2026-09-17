@@ -7,7 +7,7 @@
 
   {% for key, text in questions %}
     {% set entries = breakdown.get(key, []) %}
-    <h2 style="margin-top:32px;">{{ text }}</h2>
+    <h2 class="survey-question">{{ text }}</h2>
     {% if not entries %}
       <p class="muted">אין עדיין תשובות.</p>
     {% else %}

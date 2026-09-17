@@ -296,6 +296,15 @@ a.stat-row:hover { background: var(--bg); }
 .stat-label { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stat-value { font-size: 13px; color: #888; white-space: nowrap; direction: ltr; text-align: right; }
 
+.survey-question {
+  margin-top: 32px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #b8860b;
+  display: inline-block;
+  padding-bottom: 4px;
+  border-bottom: 3px solid var(--gold);
+}
 .hbar-list { display: flex; flex-direction: column; gap: 16px; max-width: 700px; margin-bottom: 12px; }
 .hbar-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .hbar-name { font-weight: 700; font-size: 14px; }
