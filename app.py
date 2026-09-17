@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.3.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.3.2"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -340,22 +340,46 @@ def build_survey_results():
 
 
 def build_survey_admin_breakdown():
-    """Per question: every distinct answer (grouped case-insensitively, same as
-    build_survey_results) with the full list of respondents who gave it - admin-only, unlike
-    the public reveal which never attributes an answer to who said it. A joke/embellished
-    answer (e.g. "רום בשביל הזונות") naturally stays its own bar since it's a different exact
-    string from a plain "רום" - no fuzzy matching needed."""
+    """Per question: every distinct answer with the full list of respondents who gave it -
+    admin-only, unlike the public reveal which never attributes an answer to who said it.
+
+    A vote like "אלי לוי ולא בשביל הטורניר" counts toward the plain "אלי לוי" bar - but only
+    when "אלי לוי" also appears as its own exact answer somewhere in this question, so the
+    embellished text is recognized as *that* name plus commentary rather than a distinct
+    identity. This is deliberately scoped per-question and to answers actually seen, not
+    matched against every registered username - matching that broadly would wrongly fold an
+    unrelated longer name (e.g. "דניאל גויצו") into an unrelated short one ("דניאל") just
+    because one happens to prefix the other. The original text of every folded-in answer is
+    kept as a "note" so the joke/commentary is still visible, just not counted separately."""
     rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
     by_question = {}
     for r in rows:
-        bucket = by_question.setdefault(r["question_key"], {})
-        name_key = r["answer_name"].strip().lower()
-        entry = bucket.setdefault(name_key, {"name": r["answer_name"].strip(), "voters": []})
-        entry["voters"].append(r["respondent_name"])
+        by_question.setdefault(r["question_key"], []).append(r)
 
     breakdown = {}
-    for qkey, bucket in by_question.items():
-        breakdown[qkey] = sorted(bucket.values(), key=lambda v: (-len(v["voters"]), v["name"]))
+    for qkey, qrows in by_question.items():
+        exact_answers = {r["answer_name"].strip() for r in qrows}
+        candidates = sorted(exact_answers, key=len, reverse=True)
+
+        def canonicalize(raw, candidates=candidates):
+            for cand in candidates:
+                if cand != raw and raw.startswith(cand + " "):
+                    return cand
+            return raw
+
+        bucket = {}
+        for r in qrows:
+            raw = r["answer_name"].strip()
+            canonical = canonicalize(raw)
+            entry = bucket.setdefault(canonical.lower(), {"name": canonical, "voters": [], "notes": set()})
+            entry["voters"].append(r["respondent_name"])
+            if raw != canonical:
+                entry["notes"].add(raw)
+
+        entries = sorted(bucket.values(), key=lambda v: (-len(v["voters"]), v["name"]))
+        for e in entries:
+            e["notes"] = sorted(e["notes"])
+        breakdown[qkey] = entries
     return breakdown
 
 

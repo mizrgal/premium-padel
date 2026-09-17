@@ -308,6 +308,7 @@ a.stat-row:hover { background: var(--bg); }
 .bar { width: 40px; background: linear-gradient(180deg, #ffd873, var(--gold)); border-radius: 6px 6px 0 0; min-height: 8px; }
 .bar-count { font-weight: 700; margin-top: 6px; font-size: 14px; }
 .bar-label { font-size: 12px; text-align: center; margin-top: 2px; word-break: break-word; }
+.bar-notes { font-size: 11px; color: #aaa; font-style: italic; text-align: center; margin-top: 4px; word-break: break-word; }
 
 .match-card {
   background: #fff;

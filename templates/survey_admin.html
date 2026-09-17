@@ -18,6 +18,9 @@
             <div class="bar" style="height:{{ (e.voters|length / max_count * 140)|round(0,'ceil')|int }}px;"></div>
             <div class="bar-count">{{ e.voters|length }}</div>
             <div class="bar-label">{{ e.name }}</div>
+            {% if e.notes %}
+              <div class="bar-notes">{% for n in e.notes %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}</div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>
