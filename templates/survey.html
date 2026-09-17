@@ -13,20 +13,24 @@
   {% if state.revealed %}
     <h1 style="margin-top:24px;">🏆 התוצאות</h1>
     {% for key, text in questions %}
-      {% set ranked = results.get(key, []) %}
+      {% set entries = breakdown.get(key, []) %}
       <h2 class="survey-question">{{ text }}</h2>
-      {% if not ranked %}
+      {% if not entries %}
         <p class="muted">אין תשובות.</p>
       {% else %}
-        {% set max_count = ranked[0].count %}
+        {% set max_count = entries[0].voters|length %}
         <div class="hbar-list">
-          {% for r in ranked %}
+          {% for e in entries %}
             <div class="hbar-row">
               <div class="hbar-header">
-                <span class="hbar-name">{{ r.name }}</span>
-                <span class="hbar-count">{{ r.count }}</span>
+                <span class="hbar-name">{{ e.name }}</span>
+                <span class="hbar-count">{{ e.voters|length }}</span>
               </div>
-              <div class="hbar-track"><div class="hbar-fill" style="width:{{ (r.count / max_count * 100)|round(0,'ceil')|int }}%;"></div></div>
+              <div class="hbar-track"><div class="hbar-fill" style="width:{{ (e.voters|length / max_count * 100)|round(0,'ceil')|int }}%;"></div></div>
+              <div class="hbar-voters">{{ e.voters|join(', ') }}</div>
+              {% if e.notes %}
+                <div class="hbar-notes">{% for n in e.notes %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}</div>
+              {% endif %}
             </div>
           {% endfor %}
         </div>

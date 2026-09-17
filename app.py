@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.3.9"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.4.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -330,9 +330,7 @@ def _canonicalize_survey_answers(qrows):
     deliberately scoped per-question and to answers actually seen, not matched against every
     registered username - matching that broadly would wrongly fold an unrelated longer name
     (e.g. "דניאל גויצו") into an unrelated short one ("דניאל") just because one happens to
-    prefix the other. Shared by build_survey_results (public, counts only) and
-    build_survey_admin_breakdown (admin-only, also keeps who-said-what) so the two never
-    disagree on how answers are merged.
+    prefix the other.
 
     Returns {canonical_lower: {"name", "voters": [respondent_name, ...], "notes": {raw, ...}}}."""
     # shortest match wins (ascending), not longest: an embellishment chain like "רום" ->
@@ -367,22 +365,12 @@ def _survey_rows_by_question():
     return by_question
 
 
-def build_survey_results():
-    """{question_key: [{"name", "count"}, ...]} - answers merged (see
-    _canonicalize_survey_answers) and ranked most-mentioned first. Public-safe: names and
-    counts only, never who answered what."""
-    results = {}
-    for qkey, qrows in _survey_rows_by_question().items():
-        bucket = _canonicalize_survey_answers(qrows)
-        entries = [{"name": v["name"], "count": len(v["voters"])} for v in bucket.values()]
-        results[qkey] = sorted(entries, key=lambda v: (-v["count"], v["name"]))
-    return results
-
-
 def build_survey_admin_breakdown():
     """Per question: every distinct (merged) answer with the full list of respondents who
-    gave it and the original text of any embellished variants folded into it - admin-only,
-    unlike build_survey_results which never attributes an answer to who said it."""
+    gave it and the original text of any embellished variants folded into it. Despite the
+    name this now backs both the public survey page and the admin one - the group explicitly
+    asked for full attribution (who answered what) to be public - but the name stays as a
+    reminder that this exposes respondent identities, unlike a plain tally would."""
     breakdown = {}
     for qkey, qrows in _survey_rows_by_question().items():
         bucket = _canonicalize_survey_answers(qrows)
@@ -1651,10 +1639,12 @@ def fun_survey():
         resp.set_cookie(cookie_key, quote(respondent_name), max_age=60 * 60 * 24 * 180)
         return resp
 
-    results = build_survey_results() if state.get("revealed") else {}
+    # explicit user request: results are fully public, including who answered what and
+    # any commentary folded into an embellished answer - same data admins see.
+    breakdown = build_survey_admin_breakdown() if state.get("revealed") else {}
     return render_template(
         "survey.html", questions=FUN_SURVEY_QUESTIONS, state=state,
-        my_name=my_name, existing=existing, results=results,
+        my_name=my_name, existing=existing, breakdown=breakdown,
         insights=state.get("insights") if state.get("revealed") else None,
     )
 

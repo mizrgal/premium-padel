@@ -3,7 +3,7 @@
 {% block page_class %}page-wide{% endblock %}
 {% block content %}
   <h1>📊 תוצאות הסקר הכיפי</h1>
-  <p class="muted" style="margin-top:-8px;">למנהל/ת בלבד — כולל מי ענה מה. לא גלוי לאף אחד אחר, גם לא לאחר סגירת הסקר.</p>
+  <p class="muted" style="margin-top:-8px;">אותה תצוגה שמופיעה גם בעמוד הסקר הציבורי (כולל מי ענה מה) — קיצור דרך נוח לאדמין.</p>
 
   {% for key, text in questions %}
     {% set entries = breakdown.get(key, []) %}
@@ -32,7 +32,7 @@
 
   {% if insights %}
     <h2 class="survey-question" style="margin-top:48px;">🕵️ תובנות על המשתתפים</h2>
-    <p class="muted" style="margin-top:-4px;">ניתוח חופשי לפי דפוס התשובות של כל אחד — למנהל/ת בלבד, לא מיועד לפרסום ציבורי</p>
+    <p class="muted" style="margin-top:-4px;">ניתוח חופשי לפי דפוס התשובות של כל אחד — מופיע גם בעמוד הציבורי</p>
     <div class="card" style="max-width:820px; margin-top:16px; line-height:1.8; font-size:14px;">
       {{ insights | safe }}
     </div>
