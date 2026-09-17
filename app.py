@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.3.7"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.3.8"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -322,60 +322,70 @@ def submit_survey_answers(respondent_name, answers, existing):
             })
 
 
-def build_survey_results():
-    """{question_key: [{"name", "count"}, ...]} - answers grouped case-insensitively and
-    ranked most-mentioned first, per question."""
-    rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
-    by_question = {}
-    for r in rows:
-        bucket = by_question.setdefault(r["question_key"], {})
-        name_key = r["answer_name"].strip().lower()
-        entry = bucket.setdefault(name_key, {"name": r["answer_name"].strip(), "count": 0})
-        entry["count"] += 1
+def _canonicalize_survey_answers(qrows):
+    """Group one question's raw response rows by canonical answer name. A vote like "אלי לוי
+    ולא בשביל הטורניר" folds into the plain "אלי לוי" bucket - but only when "אלי לוי" also
+    appears as its own exact answer somewhere in this question, so the embellished text is
+    recognized as *that* name plus commentary rather than a distinct identity. This is
+    deliberately scoped per-question and to answers actually seen, not matched against every
+    registered username - matching that broadly would wrongly fold an unrelated longer name
+    (e.g. "דניאל גויצו") into an unrelated short one ("דניאל") just because one happens to
+    prefix the other. Shared by build_survey_results (public, counts only) and
+    build_survey_admin_breakdown (admin-only, also keeps who-said-what) so the two never
+    disagree on how answers are merged.
 
-    results = {}
-    for qkey, bucket in by_question.items():
-        results[qkey] = sorted(bucket.values(), key=lambda v: (-v["count"], v["name"]))
-    return results
+    Returns {canonical_lower: {"name", "voters": [respondent_name, ...], "notes": {raw, ...}}}."""
+    # shortest match wins (ascending), not longest: an embellishment chain like "רום" ->
+    # "רום אלחדד" -> "רום אלחדד ההומו 2.5" must collapse all the way to the root "רום" in one
+    # step, not stop at the intermediate "רום אלחדד" just because that also happens to be
+    # someone's own literal answer.
+    exact_answers = {r["answer_name"].strip() for r in qrows}
+    candidates = sorted(exact_answers, key=len)
+
+    def canonicalize(raw):
+        for cand in candidates:
+            if cand != raw and raw.startswith(cand + " "):
+                return cand
+        return raw
+
+    bucket = {}
+    for r in qrows:
+        raw = r["answer_name"].strip()
+        canonical = canonicalize(raw)
+        entry = bucket.setdefault(canonical.lower(), {"name": canonical, "voters": [], "notes": set()})
+        entry["voters"].append(r["respondent_name"])
+        if raw != canonical:
+            entry["notes"].add(raw)
+    return bucket
 
 
-def build_survey_admin_breakdown():
-    """Per question: every distinct answer with the full list of respondents who gave it -
-    admin-only, unlike the public reveal which never attributes an answer to who said it.
-
-    A vote like "אלי לוי ולא בשביל הטורניר" counts toward the plain "אלי לוי" bar - but only
-    when "אלי לוי" also appears as its own exact answer somewhere in this question, so the
-    embellished text is recognized as *that* name plus commentary rather than a distinct
-    identity. This is deliberately scoped per-question and to answers actually seen, not
-    matched against every registered username - matching that broadly would wrongly fold an
-    unrelated longer name (e.g. "דניאל גויצו") into an unrelated short one ("דניאל") just
-    because one happens to prefix the other. The original text of every folded-in answer is
-    kept as a "note" so the joke/commentary is still visible, just not counted separately."""
+def _survey_rows_by_question():
     rows = db_get("/rest/v1/padel_fun_survey_responses?select=*")
     by_question = {}
     for r in rows:
         by_question.setdefault(r["question_key"], []).append(r)
+    return by_question
 
+
+def build_survey_results():
+    """{question_key: [{"name", "count"}, ...]} - answers merged (see
+    _canonicalize_survey_answers) and ranked most-mentioned first. Public-safe: names and
+    counts only, never who answered what."""
+    results = {}
+    for qkey, qrows in _survey_rows_by_question().items():
+        bucket = _canonicalize_survey_answers(qrows)
+        entries = [{"name": v["name"], "count": len(v["voters"])} for v in bucket.values()]
+        results[qkey] = sorted(entries, key=lambda v: (-v["count"], v["name"]))
+    return results
+
+
+def build_survey_admin_breakdown():
+    """Per question: every distinct (merged) answer with the full list of respondents who
+    gave it and the original text of any embellished variants folded into it - admin-only,
+    unlike build_survey_results which never attributes an answer to who said it."""
     breakdown = {}
-    for qkey, qrows in by_question.items():
-        exact_answers = {r["answer_name"].strip() for r in qrows}
-        candidates = sorted(exact_answers, key=len, reverse=True)
-
-        def canonicalize(raw, candidates=candidates):
-            for cand in candidates:
-                if cand != raw and raw.startswith(cand + " "):
-                    return cand
-            return raw
-
-        bucket = {}
-        for r in qrows:
-            raw = r["answer_name"].strip()
-            canonical = canonicalize(raw)
-            entry = bucket.setdefault(canonical.lower(), {"name": canonical, "voters": [], "notes": set()})
-            entry["voters"].append(r["respondent_name"])
-            if raw != canonical:
-                entry["notes"].add(raw)
-
+    for qkey, qrows in _survey_rows_by_question().items():
+        bucket = _canonicalize_survey_answers(qrows)
         entries = sorted(bucket.values(), key=lambda v: (-len(v["voters"]), v["name"]))
         for e in entries:
             e["notes"] = sorted(e["notes"])
@@ -1662,6 +1672,7 @@ def fun_survey_admin():
     return render_template(
         "survey_admin.html", questions=FUN_SURVEY_QUESTIONS,
         breakdown=build_survey_admin_breakdown(),
+        insights=get_survey_state().get("insights"),
     )
 
 

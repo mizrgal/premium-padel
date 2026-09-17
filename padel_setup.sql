@@ -100,7 +100,9 @@ create unique index if not exists idx_fun_survey_unique_voter
 
 create table if not exists padel_fun_survey_meta (
   id int primary key default 1,
-  revealed boolean not null default false
+  revealed boolean not null default false,
+  insights text -- admin-only free-text writeup about respondents, rendered as HTML; never
+                 -- committed to the codebase since it names real people
 );
 insert into padel_fun_survey_meta (id, revealed) values (1, false) on conflict (id) do nothing;
 
