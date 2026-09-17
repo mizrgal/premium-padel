@@ -11,16 +11,27 @@
   {% endif %}
 
   {% if state.revealed %}
-    <h2 style="margin-top:24px;">🏆 התוצאות</h2>
-    <div class="stat-list" style="max-width:560px;">
-      {% for key, text in questions %}
-        {% set ranked = results.get(key, []) %}
-        <div class="stat-row" style="height:auto; padding:10px 0;">
-          <span class="stat-label" style="flex:2; white-space:normal;">{{ text }}</span>
-          <span class="stat-value">{% if ranked %}{{ ranked[0].name }} ({{ ranked[0].count }}){% else %}—{% endif %}</span>
+    <h1 style="margin-top:24px;">🏆 התוצאות</h1>
+    {% for key, text in questions %}
+      {% set ranked = results.get(key, []) %}
+      <h2 class="survey-question">{{ text }}</h2>
+      {% if not ranked %}
+        <p class="muted">אין תשובות.</p>
+      {% else %}
+        {% set max_count = ranked[0].count %}
+        <div class="hbar-list">
+          {% for r in ranked %}
+            <div class="hbar-row">
+              <div class="hbar-header">
+                <span class="hbar-name">{{ r.name }}</span>
+                <span class="hbar-count">{{ r.count }}</span>
+              </div>
+              <div class="hbar-track"><div class="hbar-fill" style="width:{{ (r.count / max_count * 100)|round(0,'ceil')|int }}%;"></div></div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
+      {% endif %}
+    {% endfor %}
   {% else %}
     <p class="hint" style="margin:10px 0 16px;">ענה/י בכנות 😄 — כל אדם יכול למלא פעם אחת (לפי השם), ואפשר לערוך את התשובות כל עוד הסקר פתוח.</p>
     <form method="POST" class="vote-form" style="max-width:520px;">
