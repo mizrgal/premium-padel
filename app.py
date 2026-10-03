@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.4.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.4.2"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1527,10 +1527,11 @@ def tournament_detail(tid):
     # can still close out and reveal a poll they forgot about after the tournament moved on
     votes = list_votes(tid)
     vote_total = len(votes)
-    vote_tally = {}
+    vote_tally, vote_voters = {}, {}
     if tournament.get("votes_revealed"):
         for v in votes:
             vote_tally[v["pair_id"]] = vote_tally.get(v["pair_id"], 0) + 1
+            vote_voters.setdefault(v["pair_id"], []).append(v["voter_name"])
 
     return render_template(
         "tournament_detail.html",
@@ -1545,6 +1546,7 @@ def tournament_detail(tid):
         editable_stages=editable,
         pending_stage=pending_stage,
         vote_tally=vote_tally,
+        vote_voters=vote_voters,
         vote_total=vote_total,
     )
 

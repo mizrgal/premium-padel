@@ -311,6 +311,9 @@
             <div class="vote-tally-label">{{ pair_name(p) }}{% if tournament.winner_pair_id == p.id %} 🏆{% endif %}</div>
             <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
             <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+            {% if count %}
+              <div class="hbar-voters" style="grid-column:1 / -1;">{{ vote_voters.get(p.id, [])|join(', ') }}</div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>
