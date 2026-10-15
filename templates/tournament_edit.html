@@ -24,7 +24,7 @@
              value="{{ tournament.price_per_player|int if tournament.price_per_player is not none else '' }}"
              placeholder="השאר ריק אם חינם">
 
-      {% if tournament.status == 'open' %}
+      {% if tournament.status in ('open', 'full') %}
         <label>כמות זוגות</label>
         <select name="pairs_count" required>
           <option value="4" {% if tournament.pairs_count == 4 %}selected{% endif %}>4 זוגות (בית אחד)</option>
@@ -41,9 +41,13 @@
           <option value="6" {% if tournament.game_target == 6 %}selected{% endif %}>עד 6 משחקים</option>
           <option value="8" {% if tournament.game_target == 8 %}selected{% endif %}>עד 8 משחקים</option>
         </select>
-        <p class="hint">אפשר לשנות את אלה כל עוד הטורניר פתוח להרשמה. אי אפשר להקטין את כמות הזוגות מתחת למספר שכבר נרשם.</p>
+        {% if tournament.status == 'full' %}
+          <p class="hint">הטורניר כבר מלא וההגרלה בוצעה — שינוי כמות הזוגות או מבנה הבתים כאן <strong>יבטל את ההגרלה הקיימת</strong> ויפתח מחדש את ההרשמה למקומות הנוספים. אי אפשר להקטין מתחת למספר הזוגות שכבר רשומים.</p>
+        {% else %}
+          <p class="hint">אפשר לשנות את אלה כל עוד הטורניר פתוח להרשמה. אי אפשר להקטין את כמות הזוגות מתחת למספר שכבר נרשם.</p>
+        {% endif %}
       {% else %}
-        <p class="hint" style="margin-top:0;">כמות הזוגות ואורך המשחק בבתים ננעלים לאחר שהטורניר מתמלא (כבר נקבע לגבי המשחקים הקיימים).</p>
+        <p class="hint" style="margin-top:0;">כמות הזוגות ואורך המשחק בבתים ננעלים לאחר שהטורניר התחיל (כבר נקבע לגבי המשחקים הקיימים).</p>
       {% endif %}
 
       <label>אודות הטורניר (חוקים, מבנה וכו', לא חובה)</label>

@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.4.2"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.4.3"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1283,7 +1283,7 @@ def tournament_edit(tid):
         updates = {"name": name, "date": date, "level": level, "price_per_player": price,
                    "about": about, "manager": manager, "location": location}
 
-        if tournament["status"] == "open":
+        if tournament["status"] in ("open", "full"):
             format_key = request.form.get("pairs_count", "")
             game_target = request.form.get("game_target", "")
             if format_key not in TOURNAMENT_FORMATS:
@@ -1297,9 +1297,16 @@ def tournament_edit(tid):
             if pairs_count < current_pairs:
                 flash(f"אי אפשר להקטין את כמות הזוגות מתחת ל-{current_pairs} (כבר רשומים)", "error")
                 return render_template("tournament_edit.html", tournament=tournament)
+            format_changed = (pairs_count != tournament["pairs_count"] or groups_count != tournament["groups_count"])
             updates["pairs_count"] = pairs_count
             updates["groups_count"] = groups_count
             updates["game_target"] = int(game_target)
+            if tournament["status"] == "full" and format_changed:
+                # the existing group-stage draw no longer matches the new format - undo it
+                # and reopen registration for the added spots (maybe_run_draw below redraws
+                # immediately if the new capacity happens to already be met)
+                undo_draw(tid)
+                updates["status"] = "open"
 
         update_tournament(tid, updates)
         tournament = get_tournament(tid)
