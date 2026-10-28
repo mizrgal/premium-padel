@@ -1,0 +1,116 @@
+{% extends "base_app.html" %}
+{% block title %}{{ title }} – Premium Padel{% endblock %}
+{% block content %}
+  <h1>👑 מי יהיה {{ title }}?</h1>
+  <p class="muted" style="margin-top:-8px;">HEAD Padel Golf Caesarea · 29.10.2026</p>
+
+  {% if state.revealed %}
+    <h2 class="survey-question" style="margin-top:24px;">🏆 מי ינצח את כל הטורניר</h2>
+    <div class="hbar-list" style="max-width:560px;">
+      {% set max_count = winner_breakdown[0][1]|length if winner_breakdown else 1 %}
+      {% for name, voters in winner_breakdown %}
+        <div class="hbar-row">
+          <div class="hbar-header">
+            <span class="hbar-name">{{ name }}</span>
+            <span class="hbar-count">{{ voters|length }}</span>
+          </div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / max_count * 100)|round(0,'ceil')|int }}%;"></div></div>
+          <div class="hbar-voters">{{ voters|join(', ') }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% for letter, ranked in group_breakdown %}
+      <h2 class="survey-question" style="margin-top:32px;">בית {{ letter }}</h2>
+      <div class="hbar-list" style="max-width:560px;">
+        {% set gmax = ranked[0][1]|length if ranked and ranked[0][1] else 1 %}
+        {% for name, voters in ranked %}
+          {% if voters %}
+            <div class="hbar-row">
+              <div class="hbar-header">
+                <span class="hbar-name">{{ name }}</span>
+                <span class="hbar-count">{{ voters|length }}</span>
+              </div>
+              <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / gmax * 100)|round(0,'ceil')|int }}%;"></div></div>
+              <div class="hbar-voters">{{ voters|join(', ') }}</div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="hint" style="margin:10px 0 16px;">לכל בית תבחר/י מי יסיים ראשון, ואז מתוך ארבעת הבחירות האלה תבחר/י מי יהיה מלך/ת הקרוס. כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    <form method="POST" class="vote-form" style="max-width:420px;" id="king-cross-form">
+      <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
+             value="{{ my_name }}" style="margin-bottom:10px;">
+
+      {% for letter, names in groups %}
+        <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי יסיים ראשון בבית {{ letter }}?</p>
+        {% for name in names %}
+          <label class="vote-option group-pick-option" data-group="group_{{ letter|lower }}_pick">
+            <input type="radio" name="group_{{ letter|lower }}_pick" value="{{ name }}"
+                   {% if my_vote and my_vote['group_' ~ letter|lower ~ '_pick'] == name %}checked{% endif %} required>
+            <span>{{ name }}</span>
+          </label>
+        {% endfor %}
+      {% endfor %}
+
+      <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי יהיה מלך/ת הקרוס מבין ארבעת אלה?</p>
+      <div id="winner-options">
+        <p class="muted">בחר/י קודם מנצח/ת מכל בית למעלה</p>
+      </div>
+
+      <button type="submit" class="btn-block btn-gold" style="margin-top:16px;">
+        {{ 'עדכן/י הצבעה' if my_vote else 'הצבע/י' }}
+      </button>
+    </form>
+
+    {% if session.get('is_admin') %}
+      <form method="POST" action="{{ url_for('close_king_cross_route') }}" style="margin-top:20px;"
+            onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
+        <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
+      </form>
+    {% endif %}
+
+    <script>
+      (function () {
+        var currentWinner = {{ (my_vote.winner_pick if my_vote else '') | tojson }};
+        var groupFields = [{% for letter, names in groups %}"group_{{ letter|lower }}_pick"{% if not loop.last %}, {% endif %}{% endfor %}];
+        var winnerContainer = document.getElementById('winner-options');
+
+        function updateWinnerOptions() {
+          var picks = [];
+          groupFields.forEach(function (field) {
+            var checked = document.querySelector('input[name="' + field + '"]:checked');
+            if (checked) picks.push(checked.value);
+          });
+          winnerContainer.innerHTML = '';
+          if (!picks.length) {
+            winnerContainer.innerHTML = '<p class="muted">בחר/י קודם מנצח/ת מכל בית למעלה</p>';
+            return;
+          }
+          picks.forEach(function (name) {
+            var label = document.createElement('label');
+            label.className = 'vote-option' + (name === currentWinner ? ' selected' : '');
+            var input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'winner_pick';
+            input.value = name;
+            input.required = true;
+            if (name === currentWinner) input.checked = true;
+            var span = document.createElement('span');
+            span.textContent = name;
+            label.appendChild(input);
+            label.appendChild(span);
+            winnerContainer.appendChild(label);
+          });
+        }
+
+        document.querySelectorAll('input[type="radio"][name^="group_"]').forEach(function (input) {
+          input.addEventListener('change', updateWinnerOptions);
+        });
+        updateWinnerOptions();
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

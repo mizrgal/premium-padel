@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.4.3"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.5.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -65,6 +65,18 @@ FUN_SURVEY_QUESTIONS = [
     ("bad_loser", "מי לא יודע להפסיד?"),
     ("talks_big", "מי מדבר ברמה 5 אבל שחקן רמה 3?"),
     ("paris_partner", "את מי היית לוקח איתך לטורניר בפריז?"),
+]
+
+# one-off "who will win" poll for the external HEAD Padel Golf Caesarea tournament
+# (29.10.2026) - fixed group/candidate lists from the tournament flyer, not tied to any
+# padel_tournaments row since it's an outside event. Each voter picks a group winner per
+# group (A-D), then an overall winner constrained to one of those 4 picks.
+KING_CROSS_TITLE = "מלך הקרוס"
+KING_CROSS_GROUPS = [
+    ("A", ["יוחאי", "אופיר", "אלי אסולין", "אופק"]),
+    ("B", ["רביב", "עידן כץ", "צחובר", "עידן ניסים"]),
+    ("C", ["בר", "ירדן", "דניאל", "רום"]),
+    ("D", ["רן סוויסה", "אלי", "יגל", "אמרי"]),
 ]
 
 _ssl_ctx = ssl.create_default_context()
@@ -379,6 +391,65 @@ def build_survey_admin_breakdown():
             e["notes"] = sorted(e["notes"])
         breakdown[qkey] = entries
     return breakdown
+
+
+def get_king_cross_state():
+    rows = db_get("/rest/v1/padel_king_cross_meta?id=eq.1&select=*")
+    return rows[0] if rows else {"id": 1, "revealed": False}
+
+
+def close_king_cross():
+    db_patch("padel_king_cross_meta", "id=eq.1", {"revealed": True})
+
+
+def list_king_cross_votes():
+    return db_get("/rest/v1/padel_king_cross_votes?select=*")
+
+
+def get_king_cross_vote_by_name(voter_name):
+    normalized = voter_name.strip().lower()
+    for v in list_king_cross_votes():
+        if v["voter_name"].strip().lower() == normalized:
+            return v
+    return None
+
+
+def cast_king_cross_vote(voter_name, picks, existing_vote_id=None):
+    """picks: {"group_a_pick": name, "group_b_pick": name, ..., "winner_pick": name}."""
+    if existing_vote_id:
+        db_patch("padel_king_cross_votes", f"id=eq.{existing_vote_id}", picks)
+    else:
+        db_insert("padel_king_cross_votes", {"voter_name": voter_name, **picks})
+
+
+def build_king_cross_breakdown():
+    """(group_breakdown, winner_breakdown):
+    - group_breakdown: [(letter, [(name, [voter_name, ...]), ...]), ...] - who people picked
+      to top each group, covering every name in that group (including zero votes), ranked
+      most-picked first.
+    - winner_breakdown: [(name, [voter_name, ...]), ...] for the overall "who wins it all"
+      pick - only ever names someone also picked as a group winner, since the form
+      constrains winner_pick to the voter's own 4 group picks."""
+    votes = list_king_cross_votes()
+
+    group_breakdown = []
+    for letter, names in KING_CROSS_GROUPS:
+        field = f"group_{letter.lower()}_pick"
+        by_name = {name: [] for name in names}
+        for v in votes:
+            pick = v.get(field)
+            if pick in by_name:
+                by_name[pick].append(v["voter_name"])
+        group_breakdown.append((letter, sorted(by_name.items(), key=lambda kv: (-len(kv[1]), kv[0]))))
+
+    winner_by_name = {}
+    for v in votes:
+        pick = v.get("winner_pick")
+        if pick:
+            winner_by_name.setdefault(pick, []).append(v["voter_name"])
+    winner_breakdown = sorted(winner_by_name.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+
+    return group_breakdown, winner_breakdown
 
 
 def list_matches(tid):
@@ -1676,6 +1747,63 @@ def fun_survey_admin():
         breakdown=build_survey_admin_breakdown(),
         insights=get_survey_state().get("insights"),
     )
+
+
+@app.route("/king-cross-vote", methods=["GET", "POST"])
+def king_cross_vote():
+    """No login required, same model as the tournament vote and fun survey - a free-text
+    name is the only identity, one vote per person, editable until an admin closes it."""
+    state = get_king_cross_state()
+    cookie_key = "pp_king_cross_name"
+    my_name = unquote(request.cookies.get(cookie_key, ""))
+    my_vote = get_king_cross_vote_by_name(my_name) if my_name else None
+
+    if request.method == "POST":
+        if state.get("revealed"):
+            flash("ההצבעה סגורה", "error")
+            return redirect(url_for("king_cross_vote"))
+        voter_name = request.form.get("voter_name", "").strip()
+        if len(voter_name) < 2:
+            flash("יש להזין שם מלא", "error")
+            return redirect(url_for("king_cross_vote"))
+
+        picks = {}
+        for letter, names in KING_CROSS_GROUPS:
+            field = f"group_{letter.lower()}_pick"
+            val = request.form.get(field, "")
+            if val not in names:
+                flash(f"יש לבחור מנצח/ת מבית {letter}", "error")
+                return redirect(url_for("king_cross_vote"))
+            picks[field] = val
+        winner_pick = request.form.get("winner_pick", "")
+        if winner_pick not in picks.values():
+            flash("מלך/ת הקרוס חייב/ת להיות אחד/ת מהמנצחים שבחרת בבתים", "error")
+            return redirect(url_for("king_cross_vote"))
+        picks["winner_pick"] = winner_pick
+
+        existing = my_vote or get_king_cross_vote_by_name(voter_name)
+        cast_king_cross_vote(voter_name, picks, existing_vote_id=existing["id"] if existing else None)
+        if not existing:
+            existing = get_king_cross_vote_by_name(voter_name)
+        flash("ההצבעה נשמרה!", "success")
+        resp = redirect(url_for("king_cross_vote"))
+        resp.set_cookie(cookie_key, quote(voter_name), max_age=60 * 60 * 24 * 180)
+        return resp
+
+    group_breakdown, winner_breakdown = build_king_cross_breakdown() if state.get("revealed") else ([], [])
+    return render_template(
+        "king_cross_vote.html", title=KING_CROSS_TITLE, groups=KING_CROSS_GROUPS,
+        state=state, my_name=my_name, my_vote=my_vote,
+        group_breakdown=group_breakdown, winner_breakdown=winner_breakdown,
+    )
+
+
+@app.route("/king-cross-vote/close", methods=["POST"])
+@admin_required
+def close_king_cross_route():
+    close_king_cross()
+    flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
+    return redirect(url_for("king_cross_vote"))
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])
