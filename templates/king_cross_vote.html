@@ -59,6 +59,10 @@
       <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
              value="{{ my_name }}" style="margin-bottom:10px;">
 
+      <div id="rom-warning" class="rom-warning" hidden>
+        <strong>אור רוח:</strong> "אתה בטוח שאתה בוחר ברום לנצחון? מה אתה שפוי?"
+      </div>
+
       {% for letter, names in groups %}
         <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי יסיים ראשון בבית {{ letter }}?</p>
         {% for name in names %}
@@ -94,6 +98,20 @@
 
     <script>
       (function () {
+        var form = document.getElementById('king-cross-form');
+        var romWarning = document.getElementById('rom-warning');
+        function checkRomWarning() {
+          var picked = false;
+          form.querySelectorAll('input[type="radio"]:checked').forEach(function (input) {
+            if (input.value === 'רום') picked = true;
+          });
+          romWarning.hidden = !picked;
+        }
+        form.addEventListener('change', function (e) {
+          if (e.target.type === 'radio') checkRomWarning();
+        });
+        checkRomWarning();
+
         var currentAb = {{ (my_vote.semifinal_ab_pick if my_vote else '') | tojson }};
         var currentCd = {{ (my_vote.semifinal_cd_pick if my_vote else '') | tojson }};
 
