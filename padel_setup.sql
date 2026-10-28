@@ -108,9 +108,9 @@ insert into padel_fun_survey_meta (id, revealed) values (1, false) on conflict (
 
 -- one-off "who will win" poll for an external tournament (not a padel_tournaments row) -
 -- group/candidate lists are fixed in app.py (KING_CROSS_GROUPS), not stored here. Each
--- voter picks a group winner per group (A-D), then an overall winner constrained to one of
--- those 4 picks - enforced app-side, not by a DB check (the valid overall-winner set depends
--- on that same row's own group picks, not a fixed list).
+-- voter picks a group winner per group (A-D), then a semifinal winner between their own A/B
+-- picks and another between their own C/D picks - enforced app-side, not by a DB check (the
+-- valid semifinal set depends on that same row's own group picks, not a fixed list).
 create table if not exists padel_king_cross_votes (
   id uuid primary key default gen_random_uuid(),
   voter_name text not null,
@@ -118,7 +118,8 @@ create table if not exists padel_king_cross_votes (
   group_b_pick text not null,
   group_c_pick text not null,
   group_d_pick text not null,
-  winner_pick text not null,
+  semifinal_ab_pick text not null,
+  semifinal_cd_pick text not null,
   created_at timestamptz default now()
 );
 create unique index if not exists idx_king_cross_unique_voter

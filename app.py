@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.5.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.5.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -423,13 +423,13 @@ def cast_king_cross_vote(voter_name, picks, existing_vote_id=None):
 
 
 def build_king_cross_breakdown():
-    """(group_breakdown, winner_breakdown):
+    """(group_breakdown, ab_breakdown, cd_breakdown):
     - group_breakdown: [(letter, [(name, [voter_name, ...]), ...]), ...] - who people picked
       to top each group, covering every name in that group (including zero votes), ranked
       most-picked first.
-    - winner_breakdown: [(name, [voter_name, ...]), ...] for the overall "who wins it all"
-      pick - only ever names someone also picked as a group winner, since the form
-      constrains winner_pick to the voter's own 4 group picks."""
+    - ab_breakdown / cd_breakdown: [(name, [voter_name, ...]), ...] for the semifinal_ab_pick
+      / semifinal_cd_pick fields - only ever names someone's own group A/B or C/D pick, since
+      the form constrains each to the voter's own two relevant group picks."""
     votes = list_king_cross_votes()
 
     group_breakdown = []
@@ -442,14 +442,15 @@ def build_king_cross_breakdown():
                 by_name[pick].append(v["voter_name"])
         group_breakdown.append((letter, sorted(by_name.items(), key=lambda kv: (-len(kv[1]), kv[0]))))
 
-    winner_by_name = {}
-    for v in votes:
-        pick = v.get("winner_pick")
-        if pick:
-            winner_by_name.setdefault(pick, []).append(v["voter_name"])
-    winner_breakdown = sorted(winner_by_name.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    def pick_breakdown(field):
+        by_name = {}
+        for v in votes:
+            pick = v.get(field)
+            if pick:
+                by_name.setdefault(pick, []).append(v["voter_name"])
+        return sorted(by_name.items(), key=lambda kv: (-len(kv[1]), kv[0]))
 
-    return group_breakdown, winner_breakdown
+    return group_breakdown, pick_breakdown("semifinal_ab_pick"), pick_breakdown("semifinal_cd_pick")
 
 
 def list_matches(tid):
@@ -1775,11 +1776,18 @@ def king_cross_vote():
                 flash(f"יש לבחור מנצח/ת מבית {letter}", "error")
                 return redirect(url_for("king_cross_vote"))
             picks[field] = val
-        winner_pick = request.form.get("winner_pick", "")
-        if winner_pick not in picks.values():
-            flash("מלך/ת הקרוס חייב/ת להיות אחד/ת מהמנצחים שבחרת בבתים", "error")
+
+        ab_pick = request.form.get("semifinal_ab_pick", "")
+        if ab_pick not in (picks["group_a_pick"], picks["group_b_pick"]):
+            flash("יש לבחור מנצח/ת בין מנצחי בית A ובית B", "error")
             return redirect(url_for("king_cross_vote"))
-        picks["winner_pick"] = winner_pick
+        picks["semifinal_ab_pick"] = ab_pick
+
+        cd_pick = request.form.get("semifinal_cd_pick", "")
+        if cd_pick not in (picks["group_c_pick"], picks["group_d_pick"]):
+            flash("יש לבחור מנצח/ת בין מנצחי בית C ובית D", "error")
+            return redirect(url_for("king_cross_vote"))
+        picks["semifinal_cd_pick"] = cd_pick
 
         existing = my_vote or get_king_cross_vote_by_name(voter_name)
         cast_king_cross_vote(voter_name, picks, existing_vote_id=existing["id"] if existing else None)
@@ -1790,11 +1798,14 @@ def king_cross_vote():
         resp.set_cookie(cookie_key, quote(voter_name), max_age=60 * 60 * 24 * 180)
         return resp
 
-    group_breakdown, winner_breakdown = build_king_cross_breakdown() if state.get("revealed") else ([], [])
+    if state.get("revealed"):
+        group_breakdown, ab_breakdown, cd_breakdown = build_king_cross_breakdown()
+    else:
+        group_breakdown, ab_breakdown, cd_breakdown = [], [], []
     return render_template(
         "king_cross_vote.html", title=KING_CROSS_TITLE, groups=KING_CROSS_GROUPS,
         state=state, my_name=my_name, my_vote=my_vote,
-        group_breakdown=group_breakdown, winner_breakdown=winner_breakdown,
+        group_breakdown=group_breakdown, ab_breakdown=ab_breakdown, cd_breakdown=cd_breakdown,
     )
 
 

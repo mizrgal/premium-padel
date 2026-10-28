@@ -5,16 +5,31 @@
   <p class="muted" style="margin-top:-8px;">HEAD Padel Golf Caesarea · 29.10.2026</p>
 
   {% if state.revealed %}
-    <h2 class="survey-question" style="margin-top:24px;">🏆 מי ינצח את כל הטורניר</h2>
+    <h2 class="survey-question" style="margin-top:24px;">מנצח/ת A מול B</h2>
     <div class="hbar-list" style="max-width:560px;">
-      {% set max_count = winner_breakdown[0][1]|length if winner_breakdown else 1 %}
-      {% for name, voters in winner_breakdown %}
+      {% set ab_max = ab_breakdown[0][1]|length if ab_breakdown else 1 %}
+      {% for name, voters in ab_breakdown %}
         <div class="hbar-row">
           <div class="hbar-header">
             <span class="hbar-name">{{ name }}</span>
             <span class="hbar-count">{{ voters|length }}</span>
           </div>
-          <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / max_count * 100)|round(0,'ceil')|int }}%;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / ab_max * 100)|round(0,'ceil')|int }}%;"></div></div>
+          <div class="hbar-voters">{{ voters|join(', ') }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <h2 class="survey-question" style="margin-top:32px;">מנצח/ת C מול D</h2>
+    <div class="hbar-list" style="max-width:560px;">
+      {% set cd_max = cd_breakdown[0][1]|length if cd_breakdown else 1 %}
+      {% for name, voters in cd_breakdown %}
+        <div class="hbar-row">
+          <div class="hbar-header">
+            <span class="hbar-name">{{ name }}</span>
+            <span class="hbar-count">{{ voters|length }}</span>
+          </div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / cd_max * 100)|round(0,'ceil')|int }}%;"></div></div>
           <div class="hbar-voters">{{ voters|join(', ') }}</div>
         </div>
       {% endfor %}
@@ -39,7 +54,7 @@
       </div>
     {% endfor %}
   {% else %}
-    <p class="hint" style="margin:10px 0 16px;">לכל בית תבחר/י מי יסיים ראשון, ואז מתוך ארבעת הבחירות האלה תבחר/י מי יהיה מלך/ת הקרוס. כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    <p class="hint" style="margin:10px 0 16px;">לכל בית תבחר/י מי יסיים ראשון, ואז תבחר/י מי ינצח בין מנצחי בית A ו-B, ומי ינצח בין מנצחי בית C ו-D. כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
     <form method="POST" class="vote-form" style="max-width:420px;" id="king-cross-form">
       <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
              value="{{ my_name }}" style="margin-bottom:10px;">
@@ -47,7 +62,7 @@
       {% for letter, names in groups %}
         <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי יסיים ראשון בבית {{ letter }}?</p>
         {% for name in names %}
-          <label class="vote-option group-pick-option" data-group="group_{{ letter|lower }}_pick">
+          <label class="vote-option">
             <input type="radio" name="group_{{ letter|lower }}_pick" value="{{ name }}"
                    {% if my_vote and my_vote['group_' ~ letter|lower ~ '_pick'] == name %}checked{% endif %} required>
             <span>{{ name }}</span>
@@ -55,9 +70,14 @@
         {% endfor %}
       {% endfor %}
 
-      <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי יהיה מלך/ת הקרוס מבין ארבעת אלה?</p>
-      <div id="winner-options">
-        <p class="muted">בחר/י קודם מנצח/ת מכל בית למעלה</p>
+      <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי ינצח בין מנצחי בית A ו-B?</p>
+      <div id="ab-options">
+        <p class="muted">בחר/י קודם מנצח/ת מבית A ומבית B למעלה</p>
+      </div>
+
+      <p class="hint" style="margin:14px 0 4px; font-weight:700;">מי ינצח בין מנצחי בית C ו-D?</p>
+      <div id="cd-options">
+        <p class="muted">בחר/י קודם מנצח/ת מבית C ומבית D למעלה</p>
       </div>
 
       <button type="submit" class="btn-block btn-gold" style="margin-top:16px;">
@@ -74,42 +94,48 @@
 
     <script>
       (function () {
-        var currentWinner = {{ (my_vote.winner_pick if my_vote else '') | tojson }};
-        var groupFields = [{% for letter, names in groups %}"group_{{ letter|lower }}_pick"{% if not loop.last %}, {% endif %}{% endfor %}];
-        var winnerContainer = document.getElementById('winner-options');
+        var currentAb = {{ (my_vote.semifinal_ab_pick if my_vote else '') | tojson }};
+        var currentCd = {{ (my_vote.semifinal_cd_pick if my_vote else '') | tojson }};
 
-        function updateWinnerOptions() {
-          var picks = [];
-          groupFields.forEach(function (field) {
-            var checked = document.querySelector('input[name="' + field + '"]:checked');
-            if (checked) picks.push(checked.value);
-          });
-          winnerContainer.innerHTML = '';
-          if (!picks.length) {
-            winnerContainer.innerHTML = '<p class="muted">בחר/י קודם מנצח/ת מכל בית למעלה</p>';
-            return;
+        function buildPairPicker(fieldA, fieldB, containerId, radioName, currentValue) {
+          var container = document.getElementById(containerId);
+          function update() {
+            var names = [];
+            [fieldA, fieldB].forEach(function (field) {
+              var checked = document.querySelector('input[name="' + field + '"]:checked');
+              if (checked) names.push(checked.value);
+            });
+            container.innerHTML = '';
+            if (!names.length) {
+              container.innerHTML = '<p class="muted">בחר/י קודם מנצח/ת משני הבתים למעלה</p>';
+              return;
+            }
+            names.forEach(function (name) {
+              var label = document.createElement('label');
+              label.className = 'vote-option' + (name === currentValue ? ' selected' : '');
+              var input = document.createElement('input');
+              input.type = 'radio';
+              input.name = radioName;
+              input.value = name;
+              input.required = true;
+              if (name === currentValue) input.checked = true;
+              var span = document.createElement('span');
+              span.textContent = name;
+              label.appendChild(input);
+              label.appendChild(span);
+              container.appendChild(label);
+            });
           }
-          picks.forEach(function (name) {
-            var label = document.createElement('label');
-            label.className = 'vote-option' + (name === currentWinner ? ' selected' : '');
-            var input = document.createElement('input');
-            input.type = 'radio';
-            input.name = 'winner_pick';
-            input.value = name;
-            input.required = true;
-            if (name === currentWinner) input.checked = true;
-            var span = document.createElement('span');
-            span.textContent = name;
-            label.appendChild(input);
-            label.appendChild(span);
-            winnerContainer.appendChild(label);
+          [fieldA, fieldB].forEach(function (field) {
+            document.querySelectorAll('input[name="' + field + '"]').forEach(function (input) {
+              input.addEventListener('change', update);
+            });
           });
+          update();
         }
 
-        document.querySelectorAll('input[type="radio"][name^="group_"]').forEach(function (input) {
-          input.addEventListener('change', updateWinnerOptions);
-        });
-        updateWinnerOptions();
+        buildPairPicker('group_a_pick', 'group_b_pick', 'ab-options', 'semifinal_ab_pick', currentAb);
+        buildPairPicker('group_c_pick', 'group_d_pick', 'cd-options', 'semifinal_cd_pick', currentCd);
       })();
     </script>
   {% endif %}
