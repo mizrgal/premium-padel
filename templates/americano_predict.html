@@ -1,0 +1,60 @@
+{% extends "base_app.html" %}
+{% block title %}{{ title }} – Premium Padel{% endblock %}
+{% block content %}
+  <h1>🔮 {{ title }}</h1>
+  <p class="muted" style="margin-top:-8px;">
+    <a href="{{ url_for('americano') }}">← חזרה ללוח הטורניר</a>
+  </p>
+
+  {% if state.revealed %}
+    <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. כך הצביעה הקבוצה:</p>
+    <div class="hbar-list" style="max-width:560px;">
+      {% set vmax = breakdown[0][1]|length if breakdown and breakdown[0][1] else 1 %}
+      {% for name, voters in breakdown %}
+        {% if voters %}
+          <div class="hbar-row">
+            <div class="hbar-header">
+              <span class="hbar-name">{{ name }}</span>
+              <span class="hbar-count">{{ voters|length }}</span>
+            </div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:{{ (voters|length / vmax * 100)|round(0,'ceil')|int }}%;"></div></div>
+            <div class="hbar-voters">{{ voters|join(', ') }}</div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint" style="margin:10px 0 16px;">מי ינצח בטורניר האמריקנו של מחר? אפשר להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    <form method="POST" class="vote-form" style="max-width:420px;">
+      <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
+             value="{{ my_name }}" style="margin-bottom:10px;">
+
+      <p class="hint" style="margin:14px 0 4px; font-weight:700;">שחקני ימין</p>
+      {% for name in right %}
+        <label class="vote-option">
+          <input type="radio" name="picked_name" value="{{ name }}" {% if my_vote and my_vote.picked_name == name %}checked{% endif %} required>
+          <span>{{ name }}</span>
+        </label>
+      {% endfor %}
+
+      <p class="hint" style="margin:14px 0 4px; font-weight:700;">שחקני שמאל</p>
+      {% for name in left %}
+        <label class="vote-option">
+          <input type="radio" name="picked_name" value="{{ name }}" {% if my_vote and my_vote.picked_name == name %}checked{% endif %} required>
+          <span>{{ name }}</span>
+        </label>
+      {% endfor %}
+
+      <button type="submit" class="btn-block btn-gold" style="margin-top:16px;">
+        {{ 'עדכן/י הצבעה' if my_vote else 'הצבע/י' }}
+      </button>
+    </form>
+
+    {% if session.get('is_admin') %}
+      <form method="POST" action="{{ url_for('close_americano_predict_route') }}" style="margin-top:20px;"
+            onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
+        <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}

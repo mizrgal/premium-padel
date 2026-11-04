@@ -156,6 +156,25 @@ create table if not exists padel_americano_meta (
 );
 insert into padel_americano_meta (id, schedule) values (1, null) on conflict (id) do nothing;
 
+-- "who will win the Americano mixer" prediction poll - same open-access, one-vote-per-name
+-- model as padel_votes/padel_king_cross_votes. picked_name is one of the 20 players
+-- (AMERICANO_LEFT/AMERICANO_RIGHT in app.py), not stored here since that list can change
+-- with a re-draw of the mixer itself, not of who's playing.
+create table if not exists padel_americano_predictions (
+  id uuid primary key default gen_random_uuid(),
+  voter_name text not null,
+  picked_name text not null,
+  created_at timestamptz default now()
+);
+create unique index if not exists idx_americano_predict_unique_voter
+  on padel_americano_predictions (lower(voter_name));
+
+create table if not exists padel_americano_predict_meta (
+  id int primary key default 1,
+  revealed boolean not null default false
+);
+insert into padel_americano_predict_meta (id, revealed) values (1, false) on conflict (id) do nothing;
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then

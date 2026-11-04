@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.7.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.8.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -453,6 +453,48 @@ def redraw_americano():
     db_patch("padel_americano_meta", "id=eq.1", {"schedule": schedule})
     _supa("DELETE", "/rest/v1/padel_americano_results?round_number=gt.0")
     return schedule
+
+
+AMERICANO_PREDICT_TITLE = "מי יהיה המנצח הגדול?"
+
+
+def get_americano_predict_state():
+    rows = db_get("/rest/v1/padel_americano_predict_meta?id=eq.1&select=*")
+    return rows[0] if rows else {"id": 1, "revealed": False}
+
+
+def close_americano_predict():
+    db_patch("padel_americano_predict_meta", "id=eq.1", {"revealed": True})
+
+
+def list_americano_predictions():
+    return db_get("/rest/v1/padel_americano_predictions?select=*")
+
+
+def get_americano_prediction_by_name(voter_name):
+    normalized = voter_name.strip().lower()
+    for v in list_americano_predictions():
+        if v["voter_name"].strip().lower() == normalized:
+            return v
+    return None
+
+
+def cast_americano_prediction(voter_name, picked_name, existing_id=None):
+    if existing_id:
+        db_patch("padel_americano_predictions", f"id=eq.{existing_id}", {"picked_name": picked_name})
+    else:
+        db_insert("padel_americano_predictions", {"voter_name": voter_name, "picked_name": picked_name})
+
+
+def build_americano_predict_breakdown():
+    """[(name, [voter_name, ...]), ...] for every player (including zero votes), most-picked
+    first - same full-attribution model as the fun survey/king-cross breakdowns."""
+    by_pick = {}
+    for v in list_americano_predictions():
+        by_pick.setdefault(v["picked_name"], []).append(v["voter_name"])
+    rows = [(name, by_pick.get(name, [])) for name in AMERICANO_LEFT + AMERICANO_RIGHT]
+    rows.sort(key=lambda row: (-len(row[1]), row[0]))
+    return rows
 
 
 def list_americano_results():
@@ -1975,6 +2017,50 @@ def americano_redraw():
     redraw_americano()
     flash("הוגרל שיבוץ חדש והתוצאות אופסו", "success")
     return redirect(url_for("americano"))
+
+
+@app.route("/americano/predict", methods=["GET", "POST"])
+def americano_predict():
+    """No login required - pick who you think will be the overall winner of tomorrow's
+    Americano mixer. One vote per person (by name), editable until an admin closes it."""
+    state = get_americano_predict_state()
+    cookie_key = "pp_americano_predict_name"
+    my_name = unquote(request.cookies.get(cookie_key, ""))
+    my_vote = get_americano_prediction_by_name(my_name) if my_name else None
+
+    if request.method == "POST":
+        if state.get("revealed"):
+            flash("ההצבעה סגורה", "error")
+            return redirect(url_for("americano_predict"))
+        voter_name = request.form.get("voter_name", "").strip()
+        picked_name = request.form.get("picked_name", "")
+        if len(voter_name) < 2:
+            flash("יש להזין שם מלא", "error")
+            return redirect(url_for("americano_predict"))
+        if picked_name not in AMERICANO_LEFT + AMERICANO_RIGHT:
+            flash("יש לבחור שחקן/ית", "error")
+            return redirect(url_for("americano_predict"))
+        existing = my_vote or get_americano_prediction_by_name(voter_name)
+        cast_americano_prediction(voter_name, picked_name, existing_id=existing["id"] if existing else None)
+        flash("ההצבעה נשמרה!", "success")
+        resp = redirect(url_for("americano_predict"))
+        resp.set_cookie(cookie_key, quote(voter_name), max_age=60 * 60 * 24 * 180)
+        return resp
+
+    breakdown = build_americano_predict_breakdown() if state.get("revealed") else []
+    return render_template(
+        "americano_predict.html", title=AMERICANO_PREDICT_TITLE,
+        left=AMERICANO_LEFT, right=AMERICANO_RIGHT,
+        state=state, my_name=my_name, my_vote=my_vote, breakdown=breakdown,
+    )
+
+
+@app.route("/americano/predict/close", methods=["POST"])
+@admin_required
+def close_americano_predict_route():
+    close_americano_predict()
+    flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
+    return redirect(url_for("americano_predict"))
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])

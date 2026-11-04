@@ -2,7 +2,9 @@
 {% block title %}{{ title }} – Premium Padel{% endblock %}
 {% block content %}
   <h1>🎾 {{ title }}</h1>
-  <p class="muted" style="margin-top:-8px;">{{ date_label }}</p>
+  <p class="muted" style="margin-top:-8px;">
+    {{ date_label }} · <a href="{{ url_for('americano_predict') }}">🔮 מי יהיה המנצח הגדול? הצביעו כאן</a>
+  </p>
 
   <p class="hint" style="margin:10px 0 16px; line-height:1.6;">
     20 שחקנים · 5 מגרשים · 10 סבבים. כל סבב מתחלף הפרטנר — עד הסוף כל שחקן/ית שמאל ישחק/תשחק פעם אחת עם כל אחד מעשרת שחקני הימין. היריבים נקבעים בהגרלה.
