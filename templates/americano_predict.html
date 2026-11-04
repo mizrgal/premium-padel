@@ -29,16 +29,7 @@
       <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
              value="{{ my_name }}" style="margin-bottom:10px;">
 
-      <p class="hint" style="margin:14px 0 4px; font-weight:700;">שחקני ימין</p>
-      {% for name in right %}
-        <label class="vote-option">
-          <input type="radio" name="picked_name" value="{{ name }}" {% if my_vote and my_vote.picked_name == name %}checked{% endif %} required>
-          <span>{{ name }}</span>
-        </label>
-      {% endfor %}
-
-      <p class="hint" style="margin:14px 0 4px; font-weight:700;">שחקני שמאל</p>
-      {% for name in left %}
+      {% for name in names %}
         <label class="vote-option">
           <input type="radio" name="picked_name" value="{{ name }}" {% if my_vote and my_vote.picked_name == name %}checked{% endif %} required>
           <span>{{ name }}</span>
