@@ -24,14 +24,14 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="hint" style="margin:10px 0 16px;">מי ינצח בטורניר האמריקנו של מחר? אפשר להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
-    <form method="POST" class="vote-form" style="max-width:420px;">
+    <p class="hint" style="margin:10px 0 16px;">מי ינצח בטורניר האמריקנו של מחר? בחר/י 2 שחקנים (בלי קשר לימין/שמאל). אפשר להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    <form method="POST" class="vote-form" style="max-width:420px;" id="predict-form">
       <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
              value="{{ my_name }}" style="margin-bottom:10px;">
 
       {% for name in names %}
         <label class="vote-option">
-          <input type="radio" name="picked_name" value="{{ name }}" {% if my_vote and my_vote.picked_name == name %}checked{% endif %} required>
+          <input type="checkbox" name="picked_names" value="{{ name }}" {% if my_vote and name in (my_vote.picked_name, my_vote.picked_name_2) %}checked{% endif %}>
           <span>{{ name }}</span>
         </label>
       {% endfor %}
@@ -40,6 +40,25 @@
         {{ 'עדכן/י הצבעה' if my_vote else 'הצבע/י' }}
       </button>
     </form>
+
+    <script>
+      (function () {
+        var form = document.getElementById('predict-form');
+        var boxes = Array.from(form.querySelectorAll('input[name="picked_names"]'));
+        function sync() {
+          var checked = boxes.filter(function (b) { return b.checked; });
+          boxes.forEach(function (b) { b.disabled = !b.checked && checked.length >= 2; });
+        }
+        boxes.forEach(function (b) { b.addEventListener('change', sync); });
+        sync();
+        form.addEventListener('submit', function (e) {
+          if (boxes.filter(function (b) { return b.checked; }).length !== 2) {
+            e.preventDefault();
+            alert('יש לבחור בדיוק שני שחקנים');
+          }
+        });
+      })();
+    </script>
 
     {% if session.get('is_admin') %}
       <form method="POST" action="{{ url_for('close_americano_predict_route') }}" style="margin-top:20px;"

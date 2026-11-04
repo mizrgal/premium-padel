@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.8.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.9.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -479,19 +479,24 @@ def get_americano_prediction_by_name(voter_name):
     return None
 
 
-def cast_americano_prediction(voter_name, picked_name, existing_id=None):
+def cast_americano_prediction(voter_name, picked_names, existing_id=None):
+    """picked_names: exactly 2 distinct player names, independent of side."""
+    body = {"picked_name": picked_names[0], "picked_name_2": picked_names[1]}
     if existing_id:
-        db_patch("padel_americano_predictions", f"id=eq.{existing_id}", {"picked_name": picked_name})
+        db_patch("padel_americano_predictions", f"id=eq.{existing_id}", body)
     else:
-        db_insert("padel_americano_predictions", {"voter_name": voter_name, "picked_name": picked_name})
+        db_insert("padel_americano_predictions", {"voter_name": voter_name, **body})
 
 
 def build_americano_predict_breakdown():
     """[(name, [voter_name, ...]), ...] for every player (including zero votes), most-picked
-    first - same full-attribution model as the fun survey/king-cross breakdowns."""
+    first - same full-attribution model as the fun survey/king-cross breakdowns. A voter who
+    picked a name as either of their 2 guesses counts once toward that name."""
     by_pick = {}
     for v in list_americano_predictions():
-        by_pick.setdefault(v["picked_name"], []).append(v["voter_name"])
+        for picked in (v.get("picked_name"), v.get("picked_name_2")):
+            if picked:
+                by_pick.setdefault(picked, []).append(v["voter_name"])
     rows = [(name, by_pick.get(name, [])) for name in AMERICANO_LEFT + AMERICANO_RIGHT]
     rows.sort(key=lambda row: (-len(row[1]), row[0]))
     return rows
@@ -2033,15 +2038,16 @@ def americano_predict():
             flash("ההצבעה סגורה", "error")
             return redirect(url_for("americano_predict"))
         voter_name = request.form.get("voter_name", "").strip()
-        picked_name = request.form.get("picked_name", "")
+        picked_names = [p for p in request.form.getlist("picked_names") if p]
         if len(voter_name) < 2:
             flash("יש להזין שם מלא", "error")
             return redirect(url_for("americano_predict"))
-        if picked_name not in AMERICANO_LEFT + AMERICANO_RIGHT:
-            flash("יש לבחור שחקן/ית", "error")
+        all_names = AMERICANO_LEFT + AMERICANO_RIGHT
+        if len(picked_names) != 2 or len(set(picked_names)) != 2 or any(p not in all_names for p in picked_names):
+            flash("יש לבחור בדיוק שני שחקנים שונים", "error")
             return redirect(url_for("americano_predict"))
         existing = my_vote or get_americano_prediction_by_name(voter_name)
-        cast_americano_prediction(voter_name, picked_name, existing_id=existing["id"] if existing else None)
+        cast_americano_prediction(voter_name, picked_names, existing_id=existing["id"] if existing else None)
         flash("ההצבעה נשמרה!", "success")
         resp = redirect(url_for("americano_predict"))
         resp.set_cookie(cookie_key, quote(voter_name), max_age=60 * 60 * 24 * 180)

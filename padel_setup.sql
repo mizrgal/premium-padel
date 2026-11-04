@@ -160,12 +160,16 @@ insert into padel_americano_meta (id, schedule) values (1, null) on conflict (id
 -- model as padel_votes/padel_king_cross_votes. picked_name is one of the 20 players
 -- (AMERICANO_LEFT/AMERICANO_RIGHT in app.py), not stored here since that list can change
 -- with a re-draw of the mixer itself, not of who's playing.
+-- each voter picks 2 players (independent of side - either or both could be "ימין"/"שמאל"),
+-- so a prediction is two unordered guesses, not one row per guess.
 create table if not exists padel_americano_predictions (
   id uuid primary key default gen_random_uuid(),
   voter_name text not null,
   picked_name text not null,
+  picked_name_2 text,
   created_at timestamptz default now()
 );
+alter table padel_americano_predictions add column if not exists picked_name_2 text;
 create unique index if not exists idx_americano_predict_unique_voter
   on padel_americano_predictions (lower(voter_name));
 
