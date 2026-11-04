@@ -146,6 +146,16 @@ create table if not exists padel_americano_results (
 create unique index if not exists idx_americano_unique_match
   on padel_americano_results (round_number, court);
 
+-- the live Americano draw (list of {round, matches}), stored so an admin can re-draw it
+-- from the page without a deploy. NULL schedule = fall back to the hardcoded seed in
+-- app.py (AMERICANO_SCHEDULE_DEFAULT) - see get_americano_schedule().
+create table if not exists padel_americano_meta (
+  id int primary key default 1,
+  schedule jsonb,
+  created_at timestamptz default now()
+);
+insert into padel_americano_meta (id, schedule) values (1, null) on conflict (id) do nothing;
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then

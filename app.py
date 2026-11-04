@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.6.3"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.7.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -80,14 +80,16 @@ KING_CROSS_GROUPS = [
 ]
 
 # one-off "Americano" mixer: 20 players, 5 courts, 10 rounds, partners rotate every round
-# so each left-side player plays exactly once with each right-side player. Schedule is a
-# fixed cyclic-rotation draw, generated once and hardcoded here (same pattern as
-# KING_CROSS_GROUPS) - results live in padel_americano_results, open to anyone (no login).
+# so each left-side player plays exactly once with each right-side player. The live
+# schedule lives in padel_americano_meta (jsonb) so an admin can re-draw it from the page
+# without a deploy; AMERICANO_SCHEDULE_DEFAULT below is only the seed used the first time
+# (before any row exists) and after a fresh migration. Results live in
+# padel_americano_results, open to anyone (no login) - see get_americano_schedule().
 AMERICANO_TITLE = "Eli's Birthday Padel Mixer"
 AMERICANO_DATE_LABEL = "חמישי 05.11 · 08:45"
 AMERICANO_LEFT = ["דניאל אליעזר", "אור רוח", "אלי לוי", "רן סוויסה", "רום", "גל מזרחי", "חנן ממן", "עדי לחיאני", "ניב", "אשלי"]
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
-AMERICANO_SCHEDULE = [
+AMERICANO_SCHEDULE_DEFAULT = [
     {"round": 1, "matches": [{"court": 1, "a": ["חנן ממן", "עידן כץ"], "b": ["אור רוח", "יוחאי זיו"]}, {"court": 2, "a": ["ניב", "טבקמן"], "b": ["אלי לוי", "אופיר עמרם"]}, {"court": 3, "a": ["גל מזרחי", "משה וזאן"], "b": ["רן סוויסה", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "יובל צחובר"], "b": ["אשלי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "ניקו"], "b": ["רום", "רביב"]}]},
     {"round": 2, "matches": [{"court": 1, "a": ["אשלי", "ניקו"], "b": ["רן סוויסה", "עידן כץ"]}, {"court": 2, "a": ["גל מזרחי", "אמרי"], "b": ["אור רוח", "טבקמן"]}, {"court": 3, "a": ["רום", "יוחאי זיו"], "b": ["ניב", "משה וזאן"]}, {"court": 4, "a": ["אלי לוי", "רביב"], "b": ["עדי לחיאני", "יובל צחובר"]}, {"court": 5, "a": ["חנן ממן", "יובל דיאז"], "b": ["דניאל אליעזר", "אופיר עמרם"]}]},
     {"round": 3, "matches": [{"court": 1, "a": ["גל מזרחי", "עידן כץ"], "b": ["רום", "טבקמן"]}, {"court": 2, "a": ["עדי לחיאני", "אופיר עמרם"], "b": ["אשלי", "יובל צחובר"]}, {"court": 3, "a": ["רן סוויסה", "יובל דיאז"], "b": ["אור רוח", "משה וזאן"]}, {"court": 4, "a": ["דניאל אליעזר", "רביב"], "b": ["אלי לוי", "יוחאי זיו"]}, {"court": 5, "a": ["חנן ממן", "ניקו"], "b": ["ניב", "אמרי"]}]},
@@ -414,6 +416,45 @@ def build_survey_admin_breakdown():
     return breakdown
 
 
+def get_americano_schedule():
+    """The live schedule (list of {"round", "matches"}) - the stored draw if an admin has
+    ever generated one, else the hardcoded seed."""
+    rows = db_get("/rest/v1/padel_americano_meta?id=eq.1&select=schedule")
+    if rows and rows[0].get("schedule"):
+        return rows[0]["schedule"]
+    return AMERICANO_SCHEDULE_DEFAULT
+
+
+def generate_americano_schedule():
+    """A fresh random draw: partners rotate every round via cyclic rotation (so every
+    left-right pairing occurs exactly once across the 10 rounds), opponents and court
+    assignment are then shuffled per round."""
+    left = AMERICANO_LEFT[:]
+    right = AMERICANO_RIGHT[:]
+    random.shuffle(left)
+    random.shuffle(right)
+
+    rounds = []
+    for r in range(10):
+        teams = [[left[i], right[(i + r) % 10]] for i in range(10)]
+        random.shuffle(teams)
+        courts = list(range(1, 6))
+        random.shuffle(courts)
+        matches = [{"court": courts[m], "a": teams[m * 2], "b": teams[m * 2 + 1]} for m in range(5)]
+        matches.sort(key=lambda m: m["court"])
+        rounds.append({"round": r + 1, "matches": matches})
+    return rounds
+
+
+def redraw_americano():
+    """Generates a new schedule, stores it, and clears every recorded result - the old
+    results no longer correspond to any match under the new draw."""
+    schedule = generate_americano_schedule()
+    db_patch("padel_americano_meta", "id=eq.1", {"schedule": schedule})
+    _supa("DELETE", "/rest/v1/padel_americano_results?round_number=gt.0")
+    return schedule
+
+
 def list_americano_results():
     """{(round_number, court): "a"|"b"} for every match decided so far."""
     rows = db_get("/rest/v1/padel_americano_results?select=round_number,court,winner")
@@ -435,11 +476,11 @@ def set_americano_result(round_number, court, winner):
         db_insert("padel_americano_results", {"round_number": round_number, "court": court, "winner": winner})
 
 
-def compute_americano_wins(results):
+def compute_americano_wins(schedule, results):
     """results: {(round_number, court): "a"|"b"}. Returns {player_name: win_count} covering
     every player, including those with zero wins so far."""
     wins = {name: 0 for name in AMERICANO_LEFT + AMERICANO_RIGHT}
-    for rnd in AMERICANO_SCHEDULE:
+    for rnd in schedule:
         for m in rnd["matches"]:
             winner = results.get((rnd["round"], m["court"]))
             if winner in ("a", "b"):
@@ -1876,19 +1917,20 @@ def close_king_cross_route():
 def americano():
     """No login required - anyone with the link can view the schedule/leaderboard and tap
     in a result, same open-access model as the vote/survey pages. Built for Eli's birthday
-    mixer (05.11.2026)."""
+    mixer (05.11.2026). The redraw button (below) is admin-only."""
+    schedule = get_americano_schedule()
     results = list_americano_results()
-    wins = compute_americano_wins(results)
+    wins = compute_americano_wins(schedule, results)
     leaderboard = sorted(
         ((name, count, "ימין" if name in AMERICANO_RIGHT else "שמאל") for name, count in wins.items()),
         key=lambda row: (-row[1], row[0]),
     )
     decided = sum(1 for w in results.values() if w in ("a", "b"))
-    total_matches = sum(len(rnd["matches"]) for rnd in AMERICANO_SCHEDULE)
+    total_matches = sum(len(rnd["matches"]) for rnd in schedule)
     results_by_key = {f"{r}-{c}": w for (r, c), w in results.items()}
     return render_template(
         "americano.html", title=AMERICANO_TITLE, date_label=AMERICANO_DATE_LABEL,
-        schedule=AMERICANO_SCHEDULE, results=results_by_key, leaderboard=leaderboard,
+        schedule=schedule, results=results_by_key, leaderboard=leaderboard,
         decided=decided, total_matches=total_matches,
     )
 
@@ -1897,8 +1939,9 @@ def americano():
 def americano_data():
     """Polled by the page's own JS every few seconds so everyone's leaderboard and match
     buttons stay in sync without a full reload."""
+    schedule = get_americano_schedule()
     results = list_americano_results()
-    wins = compute_americano_wins(results)
+    wins = compute_americano_wins(schedule, results)
     return jsonify({
         "results": {f"{r}-{c}": w for (r, c), w in results.items()},
         "wins": wins,
@@ -1910,19 +1953,28 @@ def americano_result():
     round_number = request.form.get("round", type=int)
     court = request.form.get("court", type=int)
     winner = request.form.get("winner", "")
+    schedule = get_americano_schedule()
     valid = winner in ("a", "b") and any(
-        m["court"] == court for rnd in AMERICANO_SCHEDULE if rnd["round"] == round_number for m in rnd["matches"]
+        m["court"] == court for rnd in schedule if rnd["round"] == round_number for m in rnd["matches"]
     )
     if not valid:
         return jsonify({"ok": False, "error": "משחק לא תקין"}), 400
     set_americano_result(round_number, court, winner)
     results = list_americano_results()
-    wins = compute_americano_wins(results)
+    wins = compute_americano_wins(schedule, results)
     return jsonify({
         "ok": True,
         "results": {f"{r}-{c}": w for (r, c), w in results.items()},
         "wins": wins,
     })
+
+
+@app.route("/americano/redraw", methods=["POST"])
+@admin_required
+def americano_redraw():
+    redraw_americano()
+    flash("הוגרל שיבוץ חדש והתוצאות אופסו", "success")
+    return redirect(url_for("americano"))
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])

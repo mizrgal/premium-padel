@@ -10,6 +10,13 @@
     <br>אפשר לגעת בזוג שניצח כדי לרשום תוצאה — נגיעה חוזרת על אותו זוג מבטלת אותה. הטבלה מתעדכנת אצל כולם.
   </p>
 
+  {% if session.get('is_admin') %}
+    <form method="POST" action="{{ url_for('americano_redraw') }}" style="margin-bottom:16px;"
+          onsubmit="return confirm('להגריל שיבוץ חדש? כל התוצאות שנרשמו עד עכשיו יימחקו.');">
+      <button type="submit" class="btn btn-outline">🎲 הגרלה מחדש</button>
+    </form>
+  {% endif %}
+
   <div class="americano-jumpbar">
     {% for rnd in schedule %}
       <a href="#americano-round-{{ rnd.round }}">{{ rnd.round }}</a>
