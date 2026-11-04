@@ -43,12 +43,12 @@
             <div class="americano-match" data-round="{{ rnd.round }}" data-court="{{ m.court }}">
               <div class="americano-court">מגרש {{ m.court }}</div>
               <button type="button" class="americano-team{% if winner == 'a' %} win{% elif winner %} lose{% endif %}" data-side="a">
-                <span class="names">{{ m.a[1] }} <small>+ {{ m.a[0] }}</small></span>
+                <span class="names"><span>{{ m.a[1] }}</span><span>{{ m.a[0] }}</span></span>
                 <span class="mark">✓</span>
               </button>
               <div class="americano-vs">נגד</div>
               <button type="button" class="americano-team{% if winner == 'b' %} win{% elif winner %} lose{% endif %}" data-side="b">
-                <span class="names">{{ m.b[1] }} <small>+ {{ m.b[0] }}</small></span>
+                <span class="names"><span>{{ m.b[1] }}</span><span>{{ m.b[0] }}</span></span>
                 <span class="mark">✓</span>
               </button>
             </div>
@@ -120,7 +120,8 @@
       padding: 9px 11px; cursor: pointer; color: var(--navy);
     }
     .americano-team .names { display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
-    .americano-team .names small { color: #999; font-weight: 500; font-size: 11px; }
+    .americano-team .names span { display: block; }
+    .americano-team .names span + span::before { content: "+ "; color: #999; font-weight: 500; }
     .americano-team .mark { color: transparent; font-size: 13px; }
     .americano-team.win { background: rgba(39,174,96,.12); border-color: var(--green); }
     .americano-team.win .mark { color: var(--green); }
