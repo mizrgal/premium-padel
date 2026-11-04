@@ -1,0 +1,194 @@
+{% extends "base_app.html" %}
+{% block title %}{{ title }} – Premium Padel{% endblock %}
+{% block content %}
+  <h1>🎾 {{ title }}</h1>
+  <p class="muted" style="margin-top:-8px;">{{ date_label }}</p>
+
+  <p class="hint" style="margin:10px 0 16px; line-height:1.6;">
+    20 שחקנים · 5 מגרשים · 10 סבבים. כל סבב מתחלף הפרטנר — עד הסוף כל שחקן/ית שמאל ישחק/תשחק פעם אחת עם כל אחד מעשרת שחקני הימין. היריבים נקבעים בהגרלה.
+    טאי-ברייק ל-21 נק׳ או 15 דק׳ (לפי המוקדם), שוויון = גולדן פוינט. כל שחקן בזוג המנצח מקבל נקודת ניצחון אישית — הכי הרבה ניצחונות אחרי 10 סבבים זוכה.
+    <br>אפשר לגעת בזוג שניצח כדי לרשום תוצאה — נגיעה חוזרת על אותו זוג מבטלת אותה. הטבלה מתעדכנת אצל כולם.
+  </p>
+
+  <div class="americano-jumpbar">
+    {% for rnd in schedule %}
+      <a href="#americano-round-{{ rnd.round }}">{{ rnd.round }}</a>
+    {% endfor %}
+  </div>
+
+  <h2 class="survey-question" style="margin-top:8px;">טבלת המובילים</h2>
+  <p class="hint" id="americano-progress" style="margin:0 0 10px;">{{ decided }} / {{ total_matches }} משחקים הוכרעו</p>
+  <div class="americano-board" id="americano-board">
+    {% for name, count, side in leaderboard %}
+      <div class="americano-board-row{% if loop.index0 < 3 and count > 0 %} top{% endif %}" data-player="{{ name }}">
+        <span class="americano-rank">{{ loop.index }}</span>
+        <span class="americano-name">{{ name }}</span>
+        <span class="americano-side">{{ side }}</span>
+        <span class="americano-wins" data-wins>{{ count }}<small>W</small></span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div id="americano-rounds" style="margin-top:28px;">
+    {% for rnd in schedule %}
+      <div class="americano-round" id="americano-round-{{ rnd.round }}">
+        <div class="americano-round-head">
+          <span class="americano-round-badge">{{ rnd.round }}</span>
+          <h3>סבב {{ rnd.round }}</h3>
+        </div>
+        <div class="americano-matches">
+          {% for m in rnd.matches %}
+            {% set key = rnd.round ~ '-' ~ m.court %}
+            {% set winner = results.get(key) %}
+            <div class="americano-match" data-round="{{ rnd.round }}" data-court="{{ m.court }}">
+              <div class="americano-court">מגרש {{ m.court }}</div>
+              <button type="button" class="americano-team{% if winner == 'a' %} win{% elif winner %} lose{% endif %}" data-side="a">
+                <span class="names">{{ m.a[1] }} <small>+ {{ m.a[0] }}</small></span>
+                <span class="mark">✓</span>
+              </button>
+              <div class="americano-vs">נגד</div>
+              <button type="button" class="americano-team{% if winner == 'b' %} win{% elif winner %} lose{% endif %}" data-side="b">
+                <span class="names">{{ m.b[1] }} <small>+ {{ m.b[0] }}</small></span>
+                <span class="mark">✓</span>
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <style>
+    .americano-jumpbar {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; gap: 7px; overflow-x: auto;
+      padding: 8px 2px; margin: 4px 0 18px;
+      background: var(--bg);
+    }
+    .americano-jumpbar a {
+      flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; border: 1.5px solid var(--border);
+      color: var(--navy); font-weight: 700; font-size: 13px; text-decoration: none;
+    }
+    .americano-jumpbar a:hover { border-color: var(--gold); }
+
+    .americano-board {
+      background: #fff; border-radius: 16px; border: 1px solid var(--border);
+      overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.06);
+    }
+    .americano-board-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+    }
+    .americano-board-row:last-child { border-bottom: none; }
+    .americano-rank { flex: 0 0 auto; width: 22px; text-align: center; font-weight: 700; color: #999; }
+    .americano-board-row.top .americano-rank { color: var(--gold); }
+    .americano-name { flex: 1; font-weight: 600; }
+    .americano-board-row.top .americano-name { color: var(--navy); font-weight: 700; }
+    .americano-side {
+      flex: 0 0 auto; font-size: 11px; font-weight: 700; color: #999;
+      background: var(--bg); border-radius: 999px; padding: 2px 9px;
+    }
+    .americano-wins {
+      flex: 0 0 auto; min-width: 32px; text-align: left;
+      font-size: 18px; font-weight: 700; color: var(--navy);
+    }
+    .americano-wins small { font-size: 10px; font-weight: 700; color: #999; margin-right: 2px; }
+
+    .americano-round { margin-bottom: 22px; }
+    .americano-round-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .americano-round-badge {
+      width: 36px; height: 32px; border-radius: 10px;
+      background: var(--navy); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+    }
+    .americano-round-head h3 { font-size: 16px; }
+
+    .americano-matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+    .americano-match {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .americano-court { font-size: 11px; font-weight: 700; color: #999; }
+    .americano-vs { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #bbb; }
+    .americano-team {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      width: 100%; text-align: right; font: inherit; font-size: 13.5px; font-weight: 600;
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 9px 11px; cursor: pointer; color: var(--navy);
+    }
+    .americano-team .names { display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
+    .americano-team .names small { color: #999; font-weight: 500; font-size: 11px; }
+    .americano-team .mark { color: transparent; font-size: 13px; }
+    .americano-team.win { background: rgba(39,174,96,.12); border-color: var(--green); }
+    .americano-team.win .mark { color: var(--green); }
+    .americano-team.lose { opacity: .55; }
+
+    @media (max-width: 420px) {
+      .americano-matches { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      function applyState(data) {
+        document.getElementById('americano-progress').textContent =
+          Object.keys(data.results).length + ' / {{ total_matches }} משחקים הוכרעו';
+
+        document.querySelectorAll('.americano-match').forEach(function (el) {
+          var key = el.dataset.round + '-' + el.dataset.court;
+          var winner = data.results[key];
+          var btnA = el.querySelector('.americano-team[data-side="a"]');
+          var btnB = el.querySelector('.americano-team[data-side="b"]');
+          [['a', btnA], ['b', btnB]].forEach(function (pair) {
+            var side = pair[0], btn = pair[1];
+            btn.classList.remove('win', 'lose');
+            if (winner === side) btn.classList.add('win');
+            else if (winner) btn.classList.add('lose');
+          });
+        });
+
+        var rows = Array.from(document.querySelectorAll('.americano-board-row'));
+        rows.sort(function (r1, r2) {
+          var w1 = data.wins[r1.dataset.player] || 0;
+          var w2 = data.wins[r2.dataset.player] || 0;
+          if (w2 !== w1) return w2 - w1;
+          return r1.dataset.player.localeCompare(r2.dataset.player, 'he');
+        });
+        var board = document.getElementById('americano-board');
+        rows.forEach(function (row, i) {
+          var wins = data.wins[row.dataset.player] || 0;
+          row.querySelector('[data-wins]').innerHTML = wins + '<small>W</small>';
+          row.classList.toggle('top', i < 3 && wins > 0);
+          row.querySelector('.americano-rank').textContent = i + 1;
+          board.appendChild(row);
+        });
+      }
+
+      function record(round, court, side) {
+        var body = new URLSearchParams({ round: round, court: court, winner: side });
+        fetch('{{ url_for("americano_result") }}', { method: 'POST', body: body })
+          .then(function (r) { return r.json(); })
+          .then(function (data) { if (data.ok) applyState(data); });
+      }
+
+      document.querySelectorAll('.americano-match').forEach(function (el) {
+        el.querySelectorAll('.americano-team').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            record(el.dataset.round, el.dataset.court, btn.dataset.side);
+          });
+        });
+      });
+
+      function poll() {
+        fetch('{{ url_for("americano_data") }}')
+          .then(function (r) { return r.json(); })
+          .then(applyState)
+          .catch(function () {});
+      }
+      setInterval(poll, 8000);
+    })();
+  </script>
+{% endblock %}

@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.5.5"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.6.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -77,6 +77,27 @@ KING_CROSS_GROUPS = [
     ("B", ["רביב", "עידן כץ", "צחובר", "עידן ניסים"]),
     ("C", ["בר", "ירדן", "דניאל", "רום"]),
     ("D", ["רן סוויסה", "אלי", "יגל", "אמרי"]),
+]
+
+# one-off "Americano" mixer: 20 players, 5 courts, 10 rounds, partners rotate every round
+# so each left-side player plays exactly once with each right-side player. Schedule is a
+# fixed cyclic-rotation draw, generated once and hardcoded here (same pattern as
+# KING_CROSS_GROUPS) - results live in padel_americano_results, open to anyone (no login).
+AMERICANO_TITLE = "Eli's Birthday Padel Mixer"
+AMERICANO_DATE_LABEL = "חמישי 05.11 · 08:45"
+AMERICANO_LEFT = ["דניאל אליעזר", "אור רוח", "אלי לוי", "רן סוויסה", "רום", "גל מזרחי", "חנן ממן", "עדי לחיאני", "ניב", "אשלי"]
+AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
+AMERICANO_SCHEDULE = [
+    {"round": 1, "matches": [{"court": 1, "a": ["גל מזרחי", "אופיר עמרם"], "b": ["חנן ממן", "יובל צחובר"]}, {"court": 2, "a": ["עדי לחיאני", "יוחאי זיו"], "b": ["רן סוויסה", "טבקמן"]}, {"court": 3, "a": ["אלי לוי", "רביב"], "b": ["ניב", "יובל דיאז"]}, {"court": 4, "a": ["אשלי", "משה וזאן"], "b": ["רום", "ניקו"]}, {"court": 5, "a": ["דניאל אליעזר", "אמרי"], "b": ["אור רוח", "עידן כץ"]}]},
+    {"round": 2, "matches": [{"court": 1, "a": ["גל מזרחי", "יובל צחובר"], "b": ["עדי לחיאני", "יובל דיאז"]}, {"court": 2, "a": ["רן סוויסה", "ניקו"], "b": ["אור רוח", "רביב"]}, {"court": 3, "a": ["דניאל אליעזר", "עידן כץ"], "b": ["חנן ממן", "יוחאי זיו"]}, {"court": 4, "a": ["רום", "אופיר עמרם"], "b": ["ניב", "משה וזאן"]}, {"court": 5, "a": ["אלי לוי", "טבקמן"], "b": ["אשלי", "אמרי"]}]},
+    {"round": 3, "matches": [{"court": 1, "a": ["אלי לוי", "ניקו"], "b": ["דניאל אליעזר", "רביב"]}, {"court": 2, "a": ["רן סוויסה", "אופיר עמרם"], "b": ["רום", "יובל צחובר"]}, {"court": 3, "a": ["גל מזרחי", "יוחאי זיו"], "b": ["אשלי", "עידן כץ"]}, {"court": 4, "a": ["ניב", "אמרי"], "b": ["חנן ממן", "יובל דיאז"]}, {"court": 5, "a": ["אור רוח", "טבקמן"], "b": ["עדי לחיאני", "משה וזאן"]}]},
+    {"round": 4, "matches": [{"court": 1, "a": ["אלי לוי", "אופיר עמרם"], "b": ["חנן ממן", "משה וזאן"]}, {"court": 2, "a": ["אור רוח", "ניקו"], "b": ["עדי לחיאני", "אמרי"]}, {"court": 3, "a": ["אשלי", "רביב"], "b": ["דניאל אליעזר", "טבקמן"]}, {"court": 4, "a": ["ניב", "עידן כץ"], "b": ["רן סוויסה", "יובל צחובר"]}, {"court": 5, "a": ["רום", "יוחאי זיו"], "b": ["גל מזרחי", "יובל דיאז"]}]},
+    {"round": 5, "matches": [{"court": 1, "a": ["רן סוויסה", "יוחאי זיו"], "b": ["אשלי", "טבקמן"]}, {"court": 2, "a": ["עדי לחיאני", "עידן כץ"], "b": ["גל מזרחי", "משה וזאן"]}, {"court": 3, "a": ["חנן ממן", "אמרי"], "b": ["אלי לוי", "יובל צחובר"]}, {"court": 4, "a": ["דניאל אליעזר", "ניקו"], "b": ["אור רוח", "אופיר עמרם"]}, {"court": 5, "a": ["רום", "יובל דיאז"], "b": ["ניב", "רביב"]}]},
+    {"round": 6, "matches": [{"court": 1, "a": ["חנן ממן", "עידן כץ"], "b": ["אור רוח", "יובל צחובר"]}, {"court": 2, "a": ["ניב", "טבקמן"], "b": ["אשלי", "ניקו"]}, {"court": 3, "a": ["עדי לחיאני", "רביב"], "b": ["רן סוויסה", "יובל דיאז"]}, {"court": 4, "a": ["רום", "משה וזאן"], "b": ["דניאל אליעזר", "אופיר עמרם"]}, {"court": 5, "a": ["אלי לוי", "יוחאי זיו"], "b": ["גל מזרחי", "אמרי"]}]},
+    {"round": 7, "matches": [{"court": 1, "a": ["דניאל אליעזר", "יובל צחובר"], "b": ["אלי לוי", "יובל דיאז"]}, {"court": 2, "a": ["אשלי", "אופיר עמרם"], "b": ["עדי לחיאני", "טבקמן"]}, {"court": 3, "a": ["גל מזרחי", "עידן כץ"], "b": ["רן סוויסה", "משה וזאן"]}, {"court": 4, "a": ["רום", "אמרי"], "b": ["חנן ממן", "רביב"]}, {"court": 5, "a": ["ניב", "ניקו"], "b": ["אור רוח", "יוחאי זיו"]}]},
+    {"round": 8, "matches": [{"court": 1, "a": ["אלי לוי", "משה וזאן"], "b": ["אור רוח", "יובל דיאז"]}, {"court": 2, "a": ["גל מזרחי", "רביב"], "b": ["אשלי", "יובל צחובר"]}, {"court": 3, "a": ["חנן ממן", "טבקמן"], "b": ["עדי לחיאני", "ניקו"]}, {"court": 4, "a": ["דניאל אליעזר", "יוחאי זיו"], "b": ["רום", "עידן כץ"]}, {"court": 5, "a": ["ניב", "אופיר עמרם"], "b": ["רן סוויסה", "אמרי"]}]},
+    {"round": 9, "matches": [{"court": 1, "a": ["חנן ממן", "ניקו"], "b": ["אשלי", "יוחאי זיו"]}, {"court": 2, "a": ["אלי לוי", "אמרי"], "b": ["ניב", "יובל צחובר"]}, {"court": 3, "a": ["גל מזרחי", "טבקמן"], "b": ["אור רוח", "משה וזאן"]}, {"court": 4, "a": ["רום", "רביב"], "b": ["עדי לחיאני", "אופיר עמרם"]}, {"court": 5, "a": ["דניאל אליעזר", "יובל דיאז"], "b": ["רן סוויסה", "עידן כץ"]}]},
+    {"round": 10, "matches": [{"court": 1, "a": ["אור רוח", "אמרי"], "b": ["חנן ממן", "אופיר עמרם"]}, {"court": 2, "a": ["גל מזרחי", "ניקו"], "b": ["אלי לוי", "עידן כץ"]}, {"court": 3, "a": ["רן סוויסה", "רביב"], "b": ["אשלי", "יובל דיאז"]}, {"court": 4, "a": ["עדי לחיאני", "יובל צחובר"], "b": ["רום", "טבקמן"]}, {"court": 5, "a": ["ניב", "יוחאי זיו"], "b": ["דניאל אליעזר", "משה וזאן"]}]},
 ]
 
 _ssl_ctx = ssl.create_default_context()
@@ -391,6 +412,40 @@ def build_survey_admin_breakdown():
             e["notes"] = sorted(e["notes"])
         breakdown[qkey] = entries
     return breakdown
+
+
+def list_americano_results():
+    """{(round_number, court): "a"|"b"} for every match decided so far."""
+    rows = db_get("/rest/v1/padel_americano_results?select=round_number,court,winner")
+    return {(r["round_number"], r["court"]): r["winner"] for r in rows}
+
+
+def set_americano_result(round_number, court, winner):
+    """Toggle: tapping the side already recorded as the winner clears the match instead of
+    re-recording it - lets anyone courtside fix a mis-tap without a separate undo control."""
+    rows = db_get(
+        f"/rest/v1/padel_americano_results?round_number=eq.{round_number}&court=eq.{court}&select=id,winner"
+    )
+    existing = rows[0] if rows else None
+    if existing and existing["winner"] == winner:
+        _supa("DELETE", f"/rest/v1/padel_americano_results?id=eq.{existing['id']}")
+    elif existing:
+        db_patch("padel_americano_results", f"id=eq.{existing['id']}", {"winner": winner})
+    else:
+        db_insert("padel_americano_results", {"round_number": round_number, "court": court, "winner": winner})
+
+
+def compute_americano_wins(results):
+    """results: {(round_number, court): "a"|"b"}. Returns {player_name: win_count} covering
+    every player, including those with zero wins so far."""
+    wins = {name: 0 for name in AMERICANO_LEFT + AMERICANO_RIGHT}
+    for rnd in AMERICANO_SCHEDULE:
+        for m in rnd["matches"]:
+            winner = results.get((rnd["round"], m["court"]))
+            if winner in ("a", "b"):
+                for name in m[winner]:
+                    wins[name] += 1
+    return wins
 
 
 def get_king_cross_state():
@@ -1815,6 +1870,59 @@ def close_king_cross_route():
     close_king_cross()
     flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
     return redirect(url_for("king_cross_vote"))
+
+
+@app.route("/americano")
+def americano():
+    """No login required - anyone with the link can view the schedule/leaderboard and tap
+    in a result, same open-access model as the vote/survey pages. Built for Eli's birthday
+    mixer (05.11.2026)."""
+    results = list_americano_results()
+    wins = compute_americano_wins(results)
+    leaderboard = sorted(
+        ((name, count, "ימין" if name in AMERICANO_RIGHT else "שמאל") for name, count in wins.items()),
+        key=lambda row: (-row[1], row[0]),
+    )
+    decided = sum(1 for w in results.values() if w in ("a", "b"))
+    total_matches = sum(len(rnd["matches"]) for rnd in AMERICANO_SCHEDULE)
+    results_by_key = {f"{r}-{c}": w for (r, c), w in results.items()}
+    return render_template(
+        "americano.html", title=AMERICANO_TITLE, date_label=AMERICANO_DATE_LABEL,
+        schedule=AMERICANO_SCHEDULE, results=results_by_key, leaderboard=leaderboard,
+        decided=decided, total_matches=total_matches,
+    )
+
+
+@app.route("/americano/data")
+def americano_data():
+    """Polled by the page's own JS every few seconds so everyone's leaderboard and match
+    buttons stay in sync without a full reload."""
+    results = list_americano_results()
+    wins = compute_americano_wins(results)
+    return jsonify({
+        "results": {f"{r}-{c}": w for (r, c), w in results.items()},
+        "wins": wins,
+    })
+
+
+@app.route("/americano/result", methods=["POST"])
+def americano_result():
+    round_number = request.form.get("round", type=int)
+    court = request.form.get("court", type=int)
+    winner = request.form.get("winner", "")
+    valid = winner in ("a", "b") and any(
+        m["court"] == court for rnd in AMERICANO_SCHEDULE if rnd["round"] == round_number for m in rnd["matches"]
+    )
+    if not valid:
+        return jsonify({"ok": False, "error": "משחק לא תקין"}), 400
+    set_americano_result(round_number, court, winner)
+    results = list_americano_results()
+    wins = compute_americano_wins(results)
+    return jsonify({
+        "ok": True,
+        "results": {f"{r}-{c}": w for (r, c), w in results.items()},
+        "wins": wins,
+    })
 
 
 @app.route("/tournaments/<tid>/register", methods=["POST"])

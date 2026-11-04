@@ -131,6 +131,21 @@ create table if not exists padel_king_cross_meta (
 );
 insert into padel_king_cross_meta (id, revealed) values (1, false) on conflict (id) do nothing;
 
+-- one-off "Americano" mixer (rotating partners, individual win tally) - the schedule
+-- itself (who plays whom, which court, each round) is fixed in app.py
+-- (AMERICANO_SCHEDULE), same pattern as KING_CROSS_GROUPS. This table only holds who
+-- won each (round, court) match. No login - anyone with the link can record a result,
+-- same open-access model as padel_votes/padel_fun_survey_responses.
+create table if not exists padel_americano_results (
+  id uuid primary key default gen_random_uuid(),
+  round_number int not null,
+  court int not null,
+  winner text not null check (winner in ('a', 'b')),
+  created_at timestamptz default now()
+);
+create unique index if not exists idx_americano_unique_match
+  on padel_americano_results (round_number, court);
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then
