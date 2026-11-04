@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.9.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.9.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2055,9 +2055,10 @@ def americano_predict():
 
     breakdown = build_americano_predict_breakdown() if state.get("revealed") else []
     names = sorted(AMERICANO_LEFT + AMERICANO_RIGHT)
+    vote_count = len(list_americano_predictions())
     return render_template(
         "americano_predict.html", title=AMERICANO_PREDICT_TITLE, names=names,
-        state=state, my_name=my_name, my_vote=my_vote, breakdown=breakdown,
+        state=state, my_name=my_name, my_vote=my_vote, breakdown=breakdown, vote_count=vote_count,
     )
 
 

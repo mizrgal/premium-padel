@@ -25,6 +25,7 @@
     </div>
   {% else %}
     <p class="hint" style="margin:10px 0 16px;">מי ינצח בטורניר האמריקנו של מחר? בחר/י 2 שחקנים (בלי קשר לימין/שמאל). אפשר להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    <p class="muted" style="margin:-8px 0 16px;">{{ vote_count }} כבר הצביעו</p>
     <form method="POST" class="vote-form" style="max-width:420px;" id="predict-form">
       <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
              value="{{ my_name }}" style="margin-bottom:10px;">
