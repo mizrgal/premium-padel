@@ -39,7 +39,7 @@
   <p class="hint" id="americano-progress" style="margin:0 0 10px;">{{ decided }} / {{ total_matches }} משחקים הוכרעו</p>
   <div class="americano-board" id="americano-board">
     {% for name, count, side in leaderboard %}
-      <div class="americano-board-row{% if loop.index0 < 3 and count > 0 %} top{% endif %}" data-player="{{ name }}">
+      <div class="americano-board-row{% if loop.index0 < 3 and count > 0 %} top medal-{{ loop.index }}{% endif %}" data-player="{{ name }}">
         <span class="americano-rank">{{ loop.index }}</span>
         <span class="americano-name">{{ name }}</span>
         <span class="americano-side">{{ side }}</span>
@@ -116,6 +116,9 @@
     .americano-board-row:last-child { border-bottom: none; }
     .americano-rank { flex: 0 0 auto; width: 22px; text-align: center; font-weight: 700; color: #999; }
     .americano-board-row.top .americano-rank { color: var(--gold); }
+    .americano-board-row.medal-1 .americano-rank { color: var(--medal-gold); }
+    .americano-board-row.medal-2 .americano-rank { color: var(--medal-silver); }
+    .americano-board-row.medal-3 .americano-rank { color: var(--medal-bronze); }
     .americano-name { flex: 1; font-weight: 600; }
     .americano-board-row.top .americano-name { color: var(--navy); font-weight: 700; }
     .americano-side {
@@ -195,6 +198,9 @@
           var wins = data.wins[row.dataset.player] || 0;
           row.querySelector('[data-wins]').innerHTML = wins + '<small>W</small>';
           row.classList.toggle('top', i < 3 && wins > 0);
+          [1, 2, 3].forEach(function (m) {
+            row.classList.toggle('medal-' + m, i === m - 1 && wins > 0);
+          });
           row.querySelector('.americano-rank').textContent = i + 1;
           board.appendChild(row);
         });
