@@ -244,7 +244,7 @@
             <table class="standings-table">
               <tr><th>#</th><th>זוג</th><th>נצחונות</th><th>הפרש משחקים</th></tr>
               {% for row in data.standings %}
-                <tr class="{{ 'rank-1' if loop.index == 1 else ('rank-2' if loop.index == 2 else '') }}">
+                <tr class="{{ 'rank-' ~ loop.index if loop.index <= 3 else '' }}">
                   <td><span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span></td>
                   <td class="pair-cell">{{ pair_name(row.pair) }}</td>
                   <td>{{ row.wins }}</td>

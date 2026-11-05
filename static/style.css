@@ -234,8 +234,9 @@ tr:last-child td { border-bottom: none; }
 .standings-table th, .standings-table td { padding: 12px 14px; font-size: 15px; }
 .standings-table th { font-size: 12px; }
 .standings-table td.pair-cell { font-weight: 600; white-space: normal; }
-.standings-table tr.rank-1 { background: #fffaf0; }
-.standings-table tr.rank-2 { background: #fdfcf7; }
+.standings-table tr.rank-1 { background: #fff8db; }
+.standings-table tr.rank-2 { background: #f3f4f7; }
+.standings-table tr.rank-3 { background: #fbf0e6; }
 
 .rank-badge {
   display: inline-flex;
@@ -249,9 +250,11 @@ tr:last-child td { border-bottom: none; }
   background: var(--bg);
   color: #888;
 }
-.rank-badge-1 { background: var(--gold); color: var(--navy); }
-.rank-badge-2 { background: #d9dce6; color: var(--navy); }
-.rank-badge-3 { background: #e3b28a; color: var(--navy); }
+/* medal colors: gold / silver / bronze */
+:root { --medal-gold: #d4af37; --medal-silver: #a8a9ad; --medal-bronze: #cd7f32; }
+.rank-badge-1 { background: linear-gradient(135deg, #ffe680, #d4af37 55%, #b8901f); color: #4a3800; box-shadow: 0 1px 3px rgba(212,175,55,.5); }
+.rank-badge-2 { background: linear-gradient(135deg, #f4f5f7, #a8a9ad 55%, #85878c); color: #2e3036; box-shadow: 0 1px 3px rgba(130,132,138,.5); }
+.rank-badge-3 { background: linear-gradient(135deg, #f0b98a, #cd7f32 55%, #a0601f); color: #fff; box-shadow: 0 1px 3px rgba(205,127,50,.5); }
 
 .vote-form { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
 .vote-option {
