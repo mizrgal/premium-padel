@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.9.3"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2015,9 +2015,10 @@ def americano():
     decided = sum(1 for w in results.values() if w in ("a", "b"))
     total_matches = sum(len(rnd["matches"]) for rnd in schedule)
     results_by_key = {f"{r}-{c}": w for (r, c), w in results.items()}
+    names = sorted(AMERICANO_LEFT + AMERICANO_RIGHT)
     return render_template(
         "americano.html", title=AMERICANO_TITLE, date_label=AMERICANO_DATE_LABEL,
-        schedule=schedule, results=results_by_key, leaderboard=leaderboard,
+        schedule=schedule, results=results_by_key, leaderboard=leaderboard, names=names,
         decided=decided, total_matches=total_matches,
     )
 

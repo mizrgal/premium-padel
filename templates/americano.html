@@ -19,9 +19,19 @@
     </form>
   {% endif %}
 
-  <div class="americano-jumpbar">
+  <div class="americano-filter">
+    <label for="americano-player-select">הצג משחקים של:</label>
+    <select id="americano-player-select">
+      <option value="">— כל השחקנים —</option>
+      {% for name in names %}
+        <option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="americano-jumpbar" id="americano-jumpbar">
     {% for rnd in schedule %}
-      <a href="#americano-round-{{ rnd.round }}">{{ rnd.round }}</a>
+      <a href="#americano-round-{{ rnd.round }}" data-round="{{ rnd.round }}">{{ rnd.round }}</a>
     {% endfor %}
   </div>
 
@@ -49,7 +59,8 @@
           {% for m in rnd.matches %}
             {% set key = rnd.round ~ '-' ~ m.court %}
             {% set winner = results.get(key) %}
-            <div class="americano-match" data-round="{{ rnd.round }}" data-court="{{ m.court }}">
+            <div class="americano-match" data-round="{{ rnd.round }}" data-court="{{ m.court }}"
+                 data-players="{{ [m.a[0], m.a[1], m.b[0], m.b[1]]|join('|') }}">
               <div class="americano-court">מגרש {{ m.court }}</div>
               <button type="button" class="americano-team{% if winner == 'a' %} win{% elif winner %} lose{% endif %}" data-side="a">
                 <span class="names"><span>{{ m.a[1] }}</span><span>{{ m.a[0] }}</span></span>
@@ -68,6 +79,18 @@
   </div>
 
   <style>
+    .americano-filter {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; font-size: 14px;
+    }
+    .americano-filter label { font-weight: 700; color: var(--navy); white-space: nowrap; }
+    .americano-filter select {
+      flex: 1; max-width: 260px; height: 38px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: #fff; color: var(--navy);
+      font: inherit; padding: 0 10px;
+    }
+    .americano-match[hidden] { display: none; }
+
     .americano-jumpbar {
       position: sticky; top: 0; z-index: 5;
       display: flex; gap: 7px; overflow-x: auto;
@@ -199,6 +222,39 @@
           .catch(function () {});
       }
       setInterval(poll, 8000);
+
+      var select = document.getElementById('americano-player-select');
+      var matchEls = Array.from(document.querySelectorAll('.americano-match'));
+      var jumpLinks = Array.from(document.querySelectorAll('#americano-jumpbar a'));
+
+      function applyFilter(name) {
+        matchEls.forEach(function (el) {
+          el.hidden = !!name && el.dataset.players.split('|').indexOf(name) === -1;
+        });
+        jumpLinks.forEach(function (a) {
+          var round = a.dataset.round;
+          var anyVisible = matchEls.some(function (el) {
+            return el.dataset.round === round && !el.hidden;
+          });
+          a.hidden = !anyVisible;
+        });
+      }
+
+      select.addEventListener('change', function () {
+        var name = select.value;
+        var url = new URL(window.location.href);
+        if (name) url.searchParams.set('player', name);
+        else url.searchParams.delete('player');
+        window.history.replaceState(null, '', url);
+        applyFilter(name);
+      });
+
+      var params = new URLSearchParams(window.location.search);
+      var initial = params.get('player') || '';
+      if (initial) {
+        select.value = initial;
+        applyFilter(initial);
+      }
     })();
   </script>
 {% endblock %}
