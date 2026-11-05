@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.9.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.9.2"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -87,19 +87,19 @@ KING_CROSS_GROUPS = [
 # padel_americano_results, open to anyone (no login) - see get_americano_schedule().
 AMERICANO_TITLE = "Eli's Birthday Padel Mixer"
 AMERICANO_DATE_LABEL = "חמישי 05.11 · 08:45"
-AMERICANO_LEFT = ["דניאל אליעזר", "אור רוח", "אלי לוי", "רן סוויסה", "רום", "גל מזרחי", "חנן ממן", "עדי לחיאני", "ניב", "אשלי"]
+AMERICANO_LEFT = ["דניאל אליעזר", "אור רוח", "אלי לוי", "רן סוויסה", "רום", "גל מזרחי", "חנן ממן", "עדי לחיאני", "ניב גויצ׳ו", "אשלי"]
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
 AMERICANO_SCHEDULE_DEFAULT = [
-    {"round": 1, "matches": [{"court": 1, "a": ["חנן ממן", "עידן כץ"], "b": ["אור רוח", "יוחאי זיו"]}, {"court": 2, "a": ["ניב", "טבקמן"], "b": ["אלי לוי", "אופיר עמרם"]}, {"court": 3, "a": ["גל מזרחי", "משה וזאן"], "b": ["רן סוויסה", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "יובל צחובר"], "b": ["אשלי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "ניקו"], "b": ["רום", "רביב"]}]},
-    {"round": 2, "matches": [{"court": 1, "a": ["אשלי", "ניקו"], "b": ["רן סוויסה", "עידן כץ"]}, {"court": 2, "a": ["גל מזרחי", "אמרי"], "b": ["אור רוח", "טבקמן"]}, {"court": 3, "a": ["רום", "יוחאי זיו"], "b": ["ניב", "משה וזאן"]}, {"court": 4, "a": ["אלי לוי", "רביב"], "b": ["עדי לחיאני", "יובל צחובר"]}, {"court": 5, "a": ["חנן ממן", "יובל דיאז"], "b": ["דניאל אליעזר", "אופיר עמרם"]}]},
-    {"round": 3, "matches": [{"court": 1, "a": ["גל מזרחי", "עידן כץ"], "b": ["רום", "טבקמן"]}, {"court": 2, "a": ["עדי לחיאני", "אופיר עמרם"], "b": ["אשלי", "יובל צחובר"]}, {"court": 3, "a": ["רן סוויסה", "יובל דיאז"], "b": ["אור רוח", "משה וזאן"]}, {"court": 4, "a": ["דניאל אליעזר", "רביב"], "b": ["אלי לוי", "יוחאי זיו"]}, {"court": 5, "a": ["חנן ממן", "ניקו"], "b": ["ניב", "אמרי"]}]},
-    {"round": 4, "matches": [{"court": 1, "a": ["רום", "משה וזאן"], "b": ["דניאל אליעזר", "יוחאי זיו"]}, {"court": 2, "a": ["ניב", "עידן כץ"], "b": ["אלי לוי", "טבקמן"]}, {"court": 3, "a": ["עדי לחיאני", "רביב"], "b": ["רן סוויסה", "ניקו"]}, {"court": 4, "a": ["גל מזרחי", "יובל דיאז"], "b": ["אשלי", "אופיר עמרם"]}, {"court": 5, "a": ["אור רוח", "אמרי"], "b": ["חנן ממן", "יובל צחובר"]}]},
-    {"round": 5, "matches": [{"court": 1, "a": ["אשלי", "רביב"], "b": ["ניב", "יובל דיאז"]}, {"court": 2, "a": ["אלי לוי", "משה וזאן"], "b": ["חנן ממן", "אופיר עמרם"]}, {"court": 3, "a": ["אור רוח", "עידן כץ"], "b": ["עדי לחיאני", "יוחאי זיו"]}, {"court": 4, "a": ["רן סוויסה", "יובל צחובר"], "b": ["רום", "אמרי"]}, {"court": 5, "a": ["גל מזרחי", "ניקו"], "b": ["דניאל אליעזר", "טבקמן"]}]},
-    {"round": 6, "matches": [{"court": 1, "a": ["ניב", "ניקו"], "b": ["עדי לחיאני", "טבקמן"]}, {"court": 2, "a": ["רום", "עידן כץ"], "b": ["אור רוח", "יובל דיאז"]}, {"court": 3, "a": ["חנן ממן", "רביב"], "b": ["דניאל אליעזר", "משה וזאן"]}, {"court": 4, "a": ["רן סוויסה", "אופיר עמרם"], "b": ["גל מזרחי", "יובל צחובר"]}, {"court": 5, "a": ["אלי לוי", "אמרי"], "b": ["אשלי", "יוחאי זיו"]}]},
-    {"round": 7, "matches": [{"court": 1, "a": ["רום", "יובל דיאז"], "b": ["גל מזרחי", "אופיר עמרם"]}, {"court": 2, "a": ["ניב", "יובל צחובר"], "b": ["אור רוח", "ניקו"]}, {"court": 3, "a": ["אשלי", "טבקמן"], "b": ["דניאל אליעזר", "אמרי"]}, {"court": 4, "a": ["אלי לוי", "עידן כץ"], "b": ["עדי לחיאני", "משה וזאן"]}, {"court": 5, "a": ["רן סוויסה", "רביב"], "b": ["חנן ממן", "יוחאי זיו"]}]},
-    {"round": 8, "matches": [{"court": 1, "a": ["אור רוח", "יובל צחובר"], "b": ["אשלי", "משה וזאן"]}, {"court": 2, "a": ["רן סוויסה", "יוחאי זיו"], "b": ["רום", "ניקו"]}, {"court": 3, "a": ["חנן ממן", "טבקמן"], "b": ["גל מזרחי", "רביב"]}, {"court": 4, "a": ["ניב", "אופיר עמרם"], "b": ["אלי לוי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "אמרי"], "b": ["דניאל אליעזר", "עידן כץ"]}]},
-    {"round": 9, "matches": [{"court": 1, "a": ["גל מזרחי", "יוחאי זיו"], "b": ["ניב", "רביב"]}, {"court": 2, "a": ["רן סוויסה", "טבקמן"], "b": ["דניאל אליעזר", "יובל דיאז"]}, {"court": 3, "a": ["רום", "יובל צחובר"], "b": ["אשלי", "אמרי"]}, {"court": 4, "a": ["עדי לחיאני", "עידן כץ"], "b": ["חנן ממן", "משה וזאן"]}, {"court": 5, "a": ["אור רוח", "אופיר עמרם"], "b": ["אלי לוי", "ניקו"]}]},
-    {"round": 10, "matches": [{"court": 1, "a": ["אלי לוי", "יובל צחובר"], "b": ["אשלי", "עידן כץ"]}, {"court": 2, "a": ["רן סוויסה", "משה וזאן"], "b": ["רום", "אופיר עמרם"]}, {"court": 3, "a": ["אור רוח", "רביב"], "b": ["חנן ממן", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "ניקו"], "b": ["ניב", "יוחאי זיו"]}, {"court": 5, "a": ["עדי לחיאני", "יובל דיאז"], "b": ["גל מזרחי", "טבקמן"]}]},
+    {"round": 1, "matches": [{"court": 1, "a": ["חנן ממן", "עידן כץ"], "b": ["אור רוח", "יוחאי זיו"]}, {"court": 2, "a": ["ניב גויצ׳ו", "טבקמן"], "b": ["אלי לוי", "אופיר עמרם"]}, {"court": 3, "a": ["גל מזרחי", "משה וזאן"], "b": ["רן סוויסה", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "יובל צחובר"], "b": ["אשלי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "ניקו"], "b": ["רום", "רביב"]}]},
+    {"round": 2, "matches": [{"court": 1, "a": ["אשלי", "ניקו"], "b": ["רן סוויסה", "עידן כץ"]}, {"court": 2, "a": ["גל מזרחי", "אמרי"], "b": ["אור רוח", "טבקמן"]}, {"court": 3, "a": ["רום", "יוחאי זיו"], "b": ["ניב גויצ׳ו", "משה וזאן"]}, {"court": 4, "a": ["אלי לוי", "רביב"], "b": ["עדי לחיאני", "יובל צחובר"]}, {"court": 5, "a": ["חנן ממן", "יובל דיאז"], "b": ["דניאל אליעזר", "אופיר עמרם"]}]},
+    {"round": 3, "matches": [{"court": 1, "a": ["גל מזרחי", "עידן כץ"], "b": ["רום", "טבקמן"]}, {"court": 2, "a": ["עדי לחיאני", "אופיר עמרם"], "b": ["אשלי", "יובל צחובר"]}, {"court": 3, "a": ["רן סוויסה", "יובל דיאז"], "b": ["אור רוח", "משה וזאן"]}, {"court": 4, "a": ["דניאל אליעזר", "רביב"], "b": ["אלי לוי", "יוחאי זיו"]}, {"court": 5, "a": ["חנן ממן", "ניקו"], "b": ["ניב גויצ׳ו", "אמרי"]}]},
+    {"round": 4, "matches": [{"court": 1, "a": ["רום", "משה וזאן"], "b": ["דניאל אליעזר", "יוחאי זיו"]}, {"court": 2, "a": ["ניב גויצ׳ו", "עידן כץ"], "b": ["אלי לוי", "טבקמן"]}, {"court": 3, "a": ["עדי לחיאני", "רביב"], "b": ["רן סוויסה", "ניקו"]}, {"court": 4, "a": ["גל מזרחי", "יובל דיאז"], "b": ["אשלי", "אופיר עמרם"]}, {"court": 5, "a": ["אור רוח", "אמרי"], "b": ["חנן ממן", "יובל צחובר"]}]},
+    {"round": 5, "matches": [{"court": 1, "a": ["אשלי", "רביב"], "b": ["ניב גויצ׳ו", "יובל דיאז"]}, {"court": 2, "a": ["אלי לוי", "משה וזאן"], "b": ["חנן ממן", "אופיר עמרם"]}, {"court": 3, "a": ["אור רוח", "עידן כץ"], "b": ["עדי לחיאני", "יוחאי זיו"]}, {"court": 4, "a": ["רן סוויסה", "יובל צחובר"], "b": ["רום", "אמרי"]}, {"court": 5, "a": ["גל מזרחי", "ניקו"], "b": ["דניאל אליעזר", "טבקמן"]}]},
+    {"round": 6, "matches": [{"court": 1, "a": ["ניב גויצ׳ו", "ניקו"], "b": ["עדי לחיאני", "טבקמן"]}, {"court": 2, "a": ["רום", "עידן כץ"], "b": ["אור רוח", "יובל דיאז"]}, {"court": 3, "a": ["חנן ממן", "רביב"], "b": ["דניאל אליעזר", "משה וזאן"]}, {"court": 4, "a": ["רן סוויסה", "אופיר עמרם"], "b": ["גל מזרחי", "יובל צחובר"]}, {"court": 5, "a": ["אלי לוי", "אמרי"], "b": ["אשלי", "יוחאי זיו"]}]},
+    {"round": 7, "matches": [{"court": 1, "a": ["רום", "יובל דיאז"], "b": ["גל מזרחי", "אופיר עמרם"]}, {"court": 2, "a": ["ניב גויצ׳ו", "יובל צחובר"], "b": ["אור רוח", "ניקו"]}, {"court": 3, "a": ["אשלי", "טבקמן"], "b": ["דניאל אליעזר", "אמרי"]}, {"court": 4, "a": ["אלי לוי", "עידן כץ"], "b": ["עדי לחיאני", "משה וזאן"]}, {"court": 5, "a": ["רן סוויסה", "רביב"], "b": ["חנן ממן", "יוחאי זיו"]}]},
+    {"round": 8, "matches": [{"court": 1, "a": ["אור רוח", "יובל צחובר"], "b": ["אשלי", "משה וזאן"]}, {"court": 2, "a": ["רן סוויסה", "יוחאי זיו"], "b": ["רום", "ניקו"]}, {"court": 3, "a": ["חנן ממן", "טבקמן"], "b": ["גל מזרחי", "רביב"]}, {"court": 4, "a": ["ניב גויצ׳ו", "אופיר עמרם"], "b": ["אלי לוי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "אמרי"], "b": ["דניאל אליעזר", "עידן כץ"]}]},
+    {"round": 9, "matches": [{"court": 1, "a": ["גל מזרחי", "יוחאי זיו"], "b": ["ניב גויצ׳ו", "רביב"]}, {"court": 2, "a": ["רן סוויסה", "טבקמן"], "b": ["דניאל אליעזר", "יובל דיאז"]}, {"court": 3, "a": ["רום", "יובל צחובר"], "b": ["אשלי", "אמרי"]}, {"court": 4, "a": ["עדי לחיאני", "עידן כץ"], "b": ["חנן ממן", "משה וזאן"]}, {"court": 5, "a": ["אור רוח", "אופיר עמרם"], "b": ["אלי לוי", "ניקו"]}]},
+    {"round": 10, "matches": [{"court": 1, "a": ["אלי לוי", "יובל צחובר"], "b": ["אשלי", "עידן כץ"]}, {"court": 2, "a": ["רן סוויסה", "משה וזאן"], "b": ["רום", "אופיר עמרם"]}, {"court": 3, "a": ["אור רוח", "רביב"], "b": ["חנן ממן", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "ניקו"], "b": ["ניב גויצ׳ו", "יוחאי זיו"]}, {"court": 5, "a": ["עדי לחיאני", "יובל דיאז"], "b": ["גל מזרחי", "טבקמן"]}]},
 ]
 
 _ssl_ctx = ssl.create_default_context()
@@ -416,13 +416,41 @@ def build_survey_admin_breakdown():
     return breakdown
 
 
+# {old_name: new_name} for a player whose name needed correcting (typo, missing surname,
+# ...) after a draw already happened - applied, in place, to whatever schedule/predictions
+# are currently stored, without touching which pairs/opponents/courts were drawn. Leave
+# empty once nothing needs fixing; harmless to leave an old entry in place since a no-op
+# migration costs nothing.
+AMERICANO_NAME_MIGRATIONS = {"ניב": "ניב גויצ׳ו"}
+
+
+def _migrate_americano_names(schedule):
+    """Applies AMERICANO_NAME_MIGRATIONS to every team slot. Returns (schedule, changed)."""
+    changed = False
+    out = []
+    for rnd in schedule:
+        matches = []
+        for m in rnd["matches"]:
+            a = [AMERICANO_NAME_MIGRATIONS.get(n, n) for n in m["a"]]
+            b = [AMERICANO_NAME_MIGRATIONS.get(n, n) for n in m["b"]]
+            if a != m["a"] or b != m["b"]:
+                changed = True
+            matches.append({"court": m["court"], "a": a, "b": b})
+        out.append({"round": rnd["round"], "matches": matches})
+    return out, changed
+
+
 def get_americano_schedule():
     """The live schedule (list of {"round", "matches"}) - the stored draw if an admin has
-    ever generated one, else the hardcoded seed."""
+    ever generated one, else the hardcoded seed. Self-heals any pending name migration
+    (write-through) so a one-off name correction applies immediately, everywhere, without
+    an admin action or a re-draw."""
     rows = db_get("/rest/v1/padel_americano_meta?id=eq.1&select=schedule")
-    if rows and rows[0].get("schedule"):
-        return rows[0]["schedule"]
-    return AMERICANO_SCHEDULE_DEFAULT
+    schedule = rows[0]["schedule"] if rows and rows[0].get("schedule") else AMERICANO_SCHEDULE_DEFAULT
+    migrated, changed = _migrate_americano_names(schedule)
+    if changed:
+        db_patch("padel_americano_meta", "id=eq.1", {"schedule": migrated})
+    return migrated
 
 
 def generate_americano_schedule():
@@ -468,7 +496,19 @@ def close_americano_predict():
 
 
 def list_americano_predictions():
-    return db_get("/rest/v1/padel_americano_predictions?select=*")
+    """Self-heals any pending name migration (see AMERICANO_NAME_MIGRATIONS) on existing
+    votes, same write-through pattern as get_americano_schedule()."""
+    rows = db_get("/rest/v1/padel_americano_predictions?select=*")
+    for r in rows:
+        updates = {}
+        if r.get("picked_name") in AMERICANO_NAME_MIGRATIONS:
+            updates["picked_name"] = AMERICANO_NAME_MIGRATIONS[r["picked_name"]]
+        if r.get("picked_name_2") in AMERICANO_NAME_MIGRATIONS:
+            updates["picked_name_2"] = AMERICANO_NAME_MIGRATIONS[r["picked_name_2"]]
+        if updates:
+            db_patch("padel_americano_predictions", f"id=eq.{r['id']}", updates)
+            r.update(updates)
+    return rows
 
 
 def get_americano_prediction_by_name(voter_name):
