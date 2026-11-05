@@ -186,11 +186,18 @@
           });
         });
 
+        var tiebreak = {{ tiebreak|tojson }};
+        function tieRank(name) {
+          var i = tiebreak.indexOf(name);
+          return i === -1 ? tiebreak.length : i;
+        }
         var rows = Array.from(document.querySelectorAll('.americano-board-row'));
         rows.sort(function (r1, r2) {
           var w1 = data.wins[r1.dataset.player] || 0;
           var w2 = data.wins[r2.dataset.player] || 0;
           if (w2 !== w1) return w2 - w1;
+          var t1 = tieRank(r1.dataset.player), t2 = tieRank(r2.dataset.player);
+          if (t1 !== t2) return t1 - t2;
           return r1.dataset.player.localeCompare(r2.dataset.player, 'he');
         });
         var board = document.getElementById('americano-board');
