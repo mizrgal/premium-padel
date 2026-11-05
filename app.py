@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.2"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -88,6 +88,15 @@ KING_CROSS_GROUPS = [
 AMERICANO_TITLE = "Eli's Birthday Padel Mixer"
 AMERICANO_DATE_LABEL = "חמישי 05.11 · 08:45"
 AMERICANO_LEFT = ["דניאל אליעזר", "אור רוח", "אלי לוי", "רן סוויסה", "רום", "גל מזרחי", "חנן ממן", "עדי לחיאני", "גויצ׳ו", "אשלי"]
+# manual tiebreak for the Americano leaderboard: players tied on wins are ordered by their
+# position here (listed names first, in this order), then alphabetically
+AMERICANO_TIEBREAK = ["עידן כץ", "טבקמן"]
+
+
+def americano_tiebreak_rank(name):
+    return AMERICANO_TIEBREAK.index(name) if name in AMERICANO_TIEBREAK else len(AMERICANO_TIEBREAK)
+
+
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
 AMERICANO_SCHEDULE_DEFAULT = [
     {"round": 1, "matches": [{"court": 1, "a": ["חנן ממן", "עידן כץ"], "b": ["אור רוח", "יוחאי זיו"]}, {"court": 2, "a": ["גויצ׳ו", "טבקמן"], "b": ["אלי לוי", "אופיר עמרם"]}, {"court": 3, "a": ["גל מזרחי", "משה וזאן"], "b": ["רן סוויסה", "אמרי"]}, {"court": 4, "a": ["דניאל אליעזר", "יובל צחובר"], "b": ["אשלי", "יובל דיאז"]}, {"court": 5, "a": ["עדי לחיאני", "ניקו"], "b": ["רום", "רביב"]}]},
@@ -2010,7 +2019,7 @@ def americano():
     wins = compute_americano_wins(schedule, results)
     leaderboard = sorted(
         ((name, count, "ימין" if name in AMERICANO_RIGHT else "שמאל") for name, count in wins.items()),
-        key=lambda row: (-row[1], row[0]),
+        key=lambda row: (-row[1], americano_tiebreak_rank(row[0]), row[0]),
     )
     decided = sum(1 for w in results.values() if w in ("a", "b"))
     total_matches = sum(len(rnd["matches"]) for rnd in schedule)
@@ -2018,7 +2027,7 @@ def americano():
     names = sorted(AMERICANO_LEFT + AMERICANO_RIGHT)
     return render_template(
         "americano.html", title=AMERICANO_TITLE, date_label=AMERICANO_DATE_LABEL,
-        schedule=schedule, results=results_by_key, leaderboard=leaderboard, names=names,
+        schedule=schedule, results=results_by_key, leaderboard=leaderboard, names=names, tiebreak=AMERICANO_TIEBREAK,
         decided=decided, total_matches=total_matches,
     )
 
