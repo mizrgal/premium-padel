@@ -6,7 +6,7 @@
   <div class="home-grid">
     <div class="home-card">
       <h2>🥇 שלושת השחקנים המובילים</h2>
-      <p class="muted" style="margin-top:-4px;">לפי אחוז ניצחונות (3 משחקים לפחות)</p>
+      <p class="muted" style="margin-top:-4px;">לפי אחוז ניצחונות (3 טורנירים לפחות)</p>
       {% if not leaderboard %}
         <p class="muted">עדיין אין מספיק משחקים כדי לחשב דירוג.</p>
       {% else %}
@@ -42,7 +42,7 @@
 
     <div class="home-card">
       <h2>🔥 הרצף החם</h2>
-      <p class="muted" style="margin-top:-4px;">שיאני הניצחונות הרצופים כרגע</p>
+      <p class="muted" style="margin-top:-4px;">שיאני הניצחונות הרצופים כרגע (3 טורנירים לפחות)</p>
       {% if not hot_streaks %}
         <p class="muted">אין כרגע רצף ניצחונות פעיל (2+).</p>
       {% else %}
@@ -60,7 +60,7 @@
 
     <div class="home-card">
       <h2>⚔️ היריבויות הכי חמות</h2>
-      <p class="muted" style="margin-top:-4px;">מי נתקל במי הכי הרבה על המגרש</p>
+      <p class="muted" style="margin-top:-4px;">מי נתקל במי הכי הרבה על המגרש (3 טורנירים לפחות)</p>
       {% if not rivalries %}
         <p class="muted">עדיין אין מספיק משחקים חוזרים בין אותם שחקנים.</p>
       {% else %}

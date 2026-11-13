@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.3"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.4"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1091,6 +1091,30 @@ def logout():
     return redirect(url_for("login_page"))
 
 
+HOME_MIN_TOURNAMENTS = 3  # players need this many tournaments played to appear on the home page
+
+
+def tournaments_played_by_user(pairs_by_id, all_matches):
+    """{user_id: number of distinct tournaments in which they played at least one decided match}."""
+    seen = {}
+    for m in all_matches:
+        if m["winner_pair_id"] is None:
+            continue
+        for pid in (m["pair_a_id"], m["pair_b_id"]):
+            pair = pairs_by_id.get(pid)
+            if not pair:
+                continue
+            for uid in (pair.get("player1_id"), pair.get("player2_id")):
+                if uid:
+                    seen.setdefault(uid, set()).add(m["tournament_id"])
+    return {uid: len(tids) for uid, tids in seen.items()}
+
+
+def home_eligible_user_ids(pairs_by_id, all_matches, min_tournaments=HOME_MIN_TOURNAMENTS):
+    counts = tournaments_played_by_user(pairs_by_id, all_matches)
+    return {uid for uid, n in counts.items() if n >= min_tournaments}
+
+
 def build_leaderboard(min_games=3, top_n=3):
     """Rank every user by win percentage across all their decided matches (tiebreak: total
     wins), among users with at least `min_games` played - otherwise a single lucky win looks
@@ -1123,10 +1147,11 @@ def build_leaderboard(min_games=3, top_n=3):
                     stats[uid]["played"] += 1
                     stats[uid]["wins"] += 1 if is_winner else 0
 
+    eligible = home_eligible_user_ids(pairs_by_id, all_matches)
     leaderboard = [
         {"user": users_by_id[uid], "played": s["played"], "wins": s["wins"],
          "win_pct": s["wins"] / s["played"] * 100, "championships": s["championships"]}
-        for uid, s in stats.items() if s["played"] >= min_games
+        for uid, s in stats.items() if s["played"] >= min_games and uid in eligible
     ]
     leaderboard.sort(key=lambda r: (-r["win_pct"], -r["wins"]))
     return leaderboard[:top_n]
@@ -1185,8 +1210,11 @@ def build_hot_streaks(top_n=3, min_streak=2):
                         "won": is_winner,
                     })
 
+    eligible = home_eligible_user_ids(pairs_by_id, all_matches)
     streaks = []
     for uid, matches in per_user.items():
+        if uid not in eligible:
+            continue
         matches.sort(key=lambda mm: mm["sort_key"])
         streak = 0
         for mm in reversed(matches):
@@ -1227,9 +1255,10 @@ def build_rivalries(top_n=3, min_matches=2):
                 r["wins"][ub] = r["wins"].get(ub, 0)
                 r["wins"][ua if winner_is_a else ub] += 1
 
+    eligible = home_eligible_user_ids(pairs_by_id, all_matches)
     rivalry_rows = []
     for key, r in rivalries.items():
-        if r["matches"] < min_matches:
+        if r["matches"] < min_matches or not key <= eligible:
             continue
         # frozenset iteration order is arbitrary (and can even change between server
         # restarts) - always put the head-to-head leader first so "X vs Y (3-0)" reads
