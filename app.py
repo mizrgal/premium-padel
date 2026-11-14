@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import quote, unquote
+from datetime import datetime, timezone
 
 from flask import (Flask, flash, jsonify, redirect, render_template, request,
                     session, url_for)
@@ -25,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.10"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.11.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -664,10 +665,28 @@ def create_matches(rows):
         db_insert_many("padel_matches", rows)
 
 
-def update_match_score(mid, score_a, score_b, winner_pair_id):
-    db_patch("padel_matches", f"id=eq.{mid}", {
-        "score_a": score_a, "score_b": score_b, "winner_pair_id": winner_pair_id,
-    })
+def update_match_score(mid, score_a, score_b, winner_pair_id, stamp_time=False):
+    """stamp_time records when the result was first entered (scored_at). Games often get
+    played out of the drawn order (whoever's free plays next), so this - not round_number -
+    is the real order for streaks. Corrections to an existing result keep the original time."""
+    body = {"score_a": score_a, "score_b": score_b, "winner_pair_id": winner_pair_id}
+    if stamp_time:
+        body["scored_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        db_patch("padel_matches", f"id=eq.{mid}", body)
+    except RuntimeError as e:
+        # the scored_at column hasn't been added in Supabase yet - save the score without it
+        if "scored_at" not in str(e):
+            raise
+        body.pop("scored_at", None)
+        db_patch("padel_matches", f"id=eq.{mid}", body)
+
+
+def match_chrono_key(tournament_date, m):
+    """Chronological sort key for a match: tournament date, then when its result was entered
+    (scored_at), falling back to the drawn order for matches scored before scored_at existed."""
+    return (tournament_date, m.get("scored_at") or "", STAGE_SORT_ORDER.get(m["stage"], 99),
+            m["match_index"], m.get("round_number") or 0)
 
 
 def videos_by_match(match_ids):
@@ -1229,7 +1248,7 @@ def build_match_histories():
                 continue
             for uid in (pair.get("player1_id"), pair.get("player2_id")):
                 if uid in per_user:
-                    per_user[uid].append(((t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"], m.get("round_number") or 0), is_winner))
+                    per_user[uid].append((match_chrono_key(t["date"], m), is_winner))
 
     eligible = home_eligible_user_ids(pairs_by_id, all_matches)
     histories = {}
@@ -1396,8 +1415,7 @@ def build_player_profile_data(user_id):
                 "partner_id": partner_id, "partner_name": partner_name,
                 "opponent": opponent, "my_score": my_score, "opp_score": opp_score,
                 "won": m["winner_pair_id"] == pair["id"],
-                "order": (tournament["date"], STAGE_SORT_ORDER.get(m["stage"], 99),
-                          m["match_index"], m.get("round_number") or 0),
+                "order": match_chrono_key(tournament["date"], m),
             })
     # newest first all the way down - inside a tournament too (the final on top, the first
     # group game at the bottom), so a streak can be read straight off the list
@@ -2479,7 +2497,7 @@ def submit_score(mid):
         flash("תוצאה לא תקינה - אין תיקו בפאדל", "error")
         return redirect(url_for("tournament_detail", tid=tournament["id"]))
 
-    update_match_score(mid, score_a, score_b, winner)
+    update_match_score(mid, score_a, score_b, winner, stamp_time=match["winner_pair_id"] is None)
     tournament = get_tournament(tournament["id"])
     # a tiebreak match's result only matters as an input to the group standings
     recompute_stage = "group" if match["stage"] == "tiebreak" else match["stage"]

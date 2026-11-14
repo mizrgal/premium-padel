@@ -61,8 +61,10 @@ create table if not exists padel_matches (
   score_a int,
   score_b int,
   winner_pair_id uuid references padel_pairs(id),
+  scored_at timestamptz, -- when the result was first entered: the real play order for streaks
   created_at timestamptz default now()
 );
+alter table padel_matches add column if not exists scored_at timestamptz;
 
 -- a match can have any number of video links (e.g. footage from multiple angles/phones)
 create table if not exists padel_match_videos (
