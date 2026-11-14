@@ -987,6 +987,26 @@ def recompute_from_stage(tournament, edited_stage):
     create_matches(_expand_into_legs(next_matches, tid, next_stage, game_target, games_per_matchup))
 
 
+def suggested_early_winner(tournament, matches, pairs):
+    """Best guess at the champion when the admin ends a tournament early (some matches still
+    unplayed): the final's winner if it's already decided, otherwise - for a single-group
+    tournament - whoever currently tops the standings on the results played so far.
+    None if there's no sensible guess (e.g. a multi-group tournament stopped before the final)."""
+    order = stage_order_for(tournament)
+    final_stage = order[-1]
+    stage_matches = [m for m in matches if m["stage"] == final_stage]
+    if final_stage != "group":
+        if stage_matches:
+            return _matchup_winner(_matchups_by_index(stage_matches)[0])
+        return None
+    played = [m for m in stage_matches if m["winner_pair_id"] is not None]
+    if not played:
+        return None
+    tiebreak_winners = _tiebreak_winners_by_group(tournament["id"]).get(1, {})
+    ranked_ids, _ = engine.compute_group_standings([p["id"] for p in pairs], played, tiebreak_winners)
+    return ranked_ids[0] if ranked_ids else None
+
+
 def resolve_player_slot(form, prefix, allow_new, current=None):
     """Resolve one side of a pair from form data. Returns (user_id_or_None, name, phone).
     Raises ValueError with a Hebrew message the caller can flash straight to the user.
@@ -1820,6 +1840,10 @@ def tournament_detail(tid):
     knockout_stages.reverse()
 
     winner_pair = pairs_by_id.get(tournament.get("winner_pair_id"))
+    early_winner_id = (
+        suggested_early_winner(tournament, matches, pairs)
+        if tournament["status"] == "in_progress" and session.get("is_admin") else None
+    )
     editable = editable_stages(tournament, matches)
     pending_stage = stage_pending_advance(tournament, matches)
 
@@ -1845,6 +1869,7 @@ def tournament_detail(tid):
         winner_pair=winner_pair,
         editable_stages=editable,
         pending_stage=pending_stage,
+        early_winner_id=early_winner_id,
         vote_tally=vote_tally,
         vote_voters=vote_voters,
         vote_total=vote_total,
@@ -2282,6 +2307,24 @@ def start_tournament(tid):
     if tournament and tournament["status"] == "full":
         update_tournament_status(tid, "in_progress")
         flash("הטורניר התחיל!", "success")
+    return redirect(url_for("tournament_detail", tid=tid))
+
+
+@app.route("/tournaments/<tid>/finish", methods=["POST"])
+@admin_required
+def finish_tournament_early(tid):
+    """Admin ends an in-progress tournament now, even with matches still unplayed. Recorded
+    results stay exactly as they are; unplayed matches just stay without a result."""
+    tournament = get_tournament(tid)
+    if not tournament or tournament["status"] != "in_progress":
+        flash("אפשר לסיים רק טורניר שנמצא בעיצומו", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+    winner = request.form.get("winner_pair_id") or None
+    if winner and winner not in {p["id"] for p in list_pairs(tid)}:
+        flash("הזוג שנבחר לא שייך לטורניר", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+    update_tournament_status(tid, "completed", winner_pair_id=winner)
+    flash("הטורניר הסתיים", "success")
     return redirect(url_for("tournament_detail", tid=tid))
 
 
