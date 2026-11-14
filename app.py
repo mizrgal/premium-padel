@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.8"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.9"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -46,7 +46,9 @@ STAGE_LABELS = {
     "final": "גמר",
 }
 app.jinja_env.globals["STAGE_LABELS"] = STAGE_LABELS
-STAGE_SORT_ORDER = {"group": 0, "quarterfinal": 1, "semifinal": 2, "final": 3}
+# chronological order of stages within a tournament (group tiebreaks are played after the
+# group games and before the knockouts)
+STAGE_SORT_ORDER = {"group": 0, "tiebreak": 0.5, "quarterfinal": 1, "semifinal": 2, "final": 3}
 
 STATUS_LABELS = {
     "open": "פתוח להרשמה",
@@ -1227,7 +1229,7 @@ def build_match_histories():
                 continue
             for uid in (pair.get("player1_id"), pair.get("player2_id")):
                 if uid in per_user:
-                    per_user[uid].append(((t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"]), is_winner))
+                    per_user[uid].append(((t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"], m.get("round_number") or 0), is_winner))
 
     eligible = home_eligible_user_ids(pairs_by_id, all_matches)
     histories = {}
@@ -1394,8 +1396,12 @@ def build_player_profile_data(user_id):
                 "partner_id": partner_id, "partner_name": partner_name,
                 "opponent": opponent, "my_score": my_score, "opp_score": opp_score,
                 "won": m["winner_pair_id"] == pair["id"],
+                "order": (tournament["date"], STAGE_SORT_ORDER.get(m["stage"], 99),
+                          m["match_index"], m.get("round_number") or 0),
             })
-    matches.sort(key=lambda m: m["tournament"]["date"], reverse=True)
+    # newest first all the way down - inside a tournament too (the final on top, the first
+    # group game at the bottom), so a streak can be read straight off the list
+    matches.sort(key=lambda m: m["order"], reverse=True)
     return matches, tournaments_summary
 
 
