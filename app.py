@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.5"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.6"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -55,20 +55,6 @@ STATUS_LABELS = {
     "completed": "הסתיים",
 }
 app.jinja_env.globals["STATUS_LABELS"] = STATUS_LABELS
-
-# joke banner for one specific user (matched by a hash of the username, so the username
-# itself isn't stored in this public repo) - see base_app.html
-_SHAI_NOTE_HASHES = {"233bfe68d06536176172ad3e30eb0896552cb7ebffd55ecbbafc17e32ab420ef"}
-
-
-def show_shai_note(username):
-    import hashlib
-    u = (username or "").strip().lower()
-    return hashlib.sha256(u.encode()).hexdigest() in _SHAI_NOTE_HASHES or (
-        "שי" in u.replace(" ", "") and "פוליטי" in u)
-
-
-app.jinja_env.globals["show_shai_note"] = show_shai_note
 
 # one-off group "superlatives" survey, not tied to any tournament - see fun_survey()
 FUN_SURVEY_QUESTIONS = [
