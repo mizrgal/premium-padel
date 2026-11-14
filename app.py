@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.7"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.8"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1204,9 +1204,9 @@ def build_predictors(top_n=3, min_predictions=1):
     return predictors[:top_n]
 
 
-def build_hot_streaks(top_n=3, min_streak=2):
-    """Current active win streak per user - consecutive wins counting back from their most
-    recent match. Matches don't record when they were played, so (tournament date, stage,
+def build_match_histories():
+    """Every eligible user's decided matches in chronological order, as a list of won/lost
+    booleans. Matches don't record when they were played, so (tournament date, stage,
     match_index) is the best available stand-in for chronological order."""
     users_by_id = {u["id"]: u for u in list_users()}
     pairs_by_id = {p["id"]: p for p in db_get("/rest/v1/padel_pairs?select=*")}
@@ -1227,25 +1227,53 @@ def build_hot_streaks(top_n=3, min_streak=2):
                 continue
             for uid in (pair.get("player1_id"), pair.get("player2_id")):
                 if uid in per_user:
-                    per_user[uid].append({
-                        "sort_key": (t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"]),
-                        "won": is_winner,
-                    })
+                    per_user[uid].append(((t["date"], STAGE_SORT_ORDER.get(m["stage"], 99), m["match_index"]), is_winner))
 
     eligible = home_eligible_user_ids(pairs_by_id, all_matches)
-    streaks = []
+    histories = {}
     for uid, matches in per_user.items():
-        if uid not in eligible:
-            continue
-        matches.sort(key=lambda mm: mm["sort_key"])
-        streak = 0
-        for mm in reversed(matches):
-            if not mm["won"]:
-                break
-            streak += 1
-        if streak >= min_streak:
-            streaks.append({"user": users_by_id[uid], "streak": streak})
+        if uid in eligible:
+            matches.sort(key=lambda mm: mm[0])
+            histories[uid] = [won for _, won in matches]
+    return users_by_id, histories
 
+
+def current_streak(results):
+    streak = 0
+    for won in reversed(results):
+        if not won:
+            break
+        streak += 1
+    return streak
+
+
+def longest_streak(results):
+    best = run = 0
+    for won in results:
+        run = run + 1 if won else 0
+        best = max(best, run)
+    return best
+
+
+def build_hot_streaks(top_n=3, min_streak=2):
+    """Current active win streak per user - consecutive wins counting back from their most
+    recent match."""
+    users_by_id, histories = build_match_histories()
+    streaks = [{"user": users_by_id[uid], "streak": current_streak(r)} for uid, r in histories.items()]
+    streaks = [s for s in streaks if s["streak"] >= min_streak]
+    streaks.sort(key=lambda r: (-r["streak"], r["user"]["username"]))
+    return streaks[:top_n]
+
+
+def build_longest_streaks(top_n=3, min_streak=2):
+    """All-time longest run of consecutive match wins per user, carrying across tournaments
+    (e.g. the last 4 matches of one tournament + the first 3 of the next = 7)."""
+    users_by_id, histories = build_match_histories()
+    streaks = []
+    for uid, r in histories.items():
+        best = longest_streak(r)
+        if best >= min_streak:
+            streaks.append({"user": users_by_id[uid], "streak": best, "active": current_streak(r) == best})
     streaks.sort(key=lambda r: (-r["streak"], r["user"]["username"]))
     return streaks[:top_n]
 
@@ -1379,6 +1407,7 @@ def index():
         leaderboard=build_leaderboard(),
         predictors=build_predictors(),
         hot_streaks=build_hot_streaks(),
+        longest_streaks=build_longest_streaks(),
         rivalries=build_rivalries(),
     )
 
