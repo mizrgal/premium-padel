@@ -31,6 +31,14 @@
     {% for category, message in get_flashed_messages(with_categories=true) %}
       <div class="flash flash-{{ category }}">{{ message }}</div>
     {% endfor %}
+    {% set _u = session.get('username', '')|replace(' ', '') %}
+    {% if 'שי' in _u and 'פוליטי' in _u %}
+      <div id="shai-note" style="background:#fff; border:3px solid #d00; color:#d00; font-size:28px; font-weight:800; text-align:center; padding:24px 16px; border-radius:12px; margin-bottom:20px; line-height:1.4; position:relative;">
+        ההזמנה שלך מ-padelproshop בוטלה ע״י גל
+        <button type="button" onclick="document.getElementById('shai-note').remove()" aria-label="סגירה"
+                style="position:absolute; top:6px; left:10px; background:none; border:none; color:#d00; font-size:22px; cursor:pointer;">✕</button>
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </div>
   <script>
