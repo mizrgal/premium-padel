@@ -25,7 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.10.6"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.10.7"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1178,13 +1178,14 @@ def build_leaderboard(min_games=3, top_n=3):
 
 
 def build_predictors(top_n=3, min_predictions=1):
-    """Rank voters by prediction accuracy across every tournament whose poll was closed
-    (votes_revealed) and that ended with a winner. Voting has no login, so a voter's
-    identity is just the free-text name they typed (case-insensitive, as in
-    get_vote_by_name)."""
+    """Rank voters by prediction accuracy across every tournament that ended with a winner.
+    Voting stops on its own once a tournament starts, so a finished tournament counts even if
+    the admin never clicked "reveal" on its poll (only per-voter totals are shown here, never
+    who voted for whom). Voting has no login, so a voter's identity is just the free-text
+    name they typed (case-insensitive, as in get_vote_by_name)."""
     stats = {}
     for t in list_tournaments():
-        if not t.get("votes_revealed") or not t.get("winner_pair_id"):
+        if not t.get("winner_pair_id"):
             continue
         for v in list_votes(t["id"]):
             key = v["voter_name"].strip().lower()
@@ -1198,7 +1199,8 @@ def build_predictors(top_n=3, min_predictions=1):
          "pct": s["correct"] / s["total"] * 100}
         for s in stats.values() if s["total"] >= min_predictions
     ]
-    predictors.sort(key=lambda r: (-r["pct"], -r["total"], r["name"]))
+    # most correct guesses first, so a single lucky 1/1 doesn't outrank someone at 4/6
+    predictors.sort(key=lambda r: (-r["correct"], -r["pct"], r["name"]))
     return predictors[:top_n]
 
 
