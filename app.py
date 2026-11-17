@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.11.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.12.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1583,8 +1583,11 @@ def parse_price(raw):
     return price, None
 
 
-# pairs_count select value -> (pairs_count, groups_count). 8 pairs has two layouts (2 groups
-# of 4, or a single round-robin group of 8), so pairs_count alone can't tell them apart.
+# pairs_count select value -> (pairs_count, groups_count). 8 and 16 pairs each have two
+# layouts (8: 2 groups of 4, or a single round-robin group of 8; 16: 4 groups of 4, or 2
+# round-robin groups of 8 with a crossed semifinal), so pairs_count alone can't tell them
+# apart - the engine already handles groups_count==2 generically (same crossover logic as
+# the 8-pairs/2-groups case, just with 8-pair round robins instead of 4-pair ones).
 TOURNAMENT_FORMATS = {
     "4": (4, 1),
     "6": (6, 1),
@@ -1592,6 +1595,7 @@ TOURNAMENT_FORMATS = {
     "8-1": (8, 1),
     "12": (12, 4),
     "16": (16, 4),
+    "16-2": (16, 2),
 }
 
 
