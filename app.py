@@ -26,12 +26,14 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.12.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.12.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
 SERVICE_KEY    = os.environ.get("SUPABASE_SERVICE_KEY", "")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
+# non-admin users who may still re-draw a tournament's groups (before it starts)
+REDRAW_USERNAMES = {"חנן ממן"}
 
 AVATAR_BUCKET = "avatars"
 AVATAR_MAX_BYTES = 3 * 1024 * 1024
@@ -733,6 +735,16 @@ def admin_required(f):
             return redirect(url_for("login_page"))
         return f(*args, **kwargs)
     return wrapper
+
+
+def can_redraw():
+    """Admins, plus the specific non-admin users in REDRAW_USERNAMES."""
+    if session.get("is_admin"):
+        return True
+    return bool(session.get("user_id")) and (session.get("username") or "").strip() in REDRAW_USERNAMES
+
+
+app.jinja_env.globals["can_redraw"] = can_redraw
 
 
 # ─── Tournament engine glue ─────────────────────────────────────────────────
@@ -2388,8 +2400,9 @@ def finish_tournament_early(tid):
 
 
 @app.route("/tournaments/<tid>/redraw", methods=["POST"])
-@admin_required
 def redraw_tournament(tid):
+    if not can_redraw():
+        return redirect(url_for("login_page"))
     tournament = get_tournament(tid)
     if not tournament or tournament["status"] != "full":
         flash("אפשר להגריל מחדש רק אחרי שהטורניר מלא ולפני שהוא התחיל", "error")

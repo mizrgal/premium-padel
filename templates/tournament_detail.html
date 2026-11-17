@@ -166,11 +166,13 @@
   {% endif %}
 
   {% if tournament.status in ('full', 'in_progress', 'completed') %}
-    {% if tournament.status == 'full' and session.get('is_admin') %}
+    {% if tournament.status == 'full' and can_redraw() %}
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+        {% if session.get('is_admin') %}
         <form method="POST" action="{{ url_for('start_tournament', tid=tournament.id) }}">
           <button type="submit" class="btn-gold">התחל טורניר</button>
         </form>
+        {% endif %}
         <form method="POST" action="{{ url_for('redraw_tournament', tid=tournament.id) }}"
               onsubmit="return confirm('להגריל מחדש את הבתים? כל שיוך הזוגות לבתים הנוכחי יוחלף בהגרלה חדשה.');">
           <button type="submit" class="btn-outline">🎲 הגרל מחדש</button>
