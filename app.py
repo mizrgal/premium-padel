@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.12.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.13.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2411,6 +2411,50 @@ def redraw_tournament(tid):
     tournament = get_tournament(tid)
     maybe_run_draw(tournament)  # pairs are still at full capacity, so this reshuffles immediately
     flash("ההגרלה בוצעה מחדש", "success")
+    return redirect(url_for("tournament_detail", tid=tid))
+
+
+@app.route("/tournaments/<tid>/manual-draw", methods=["POST"])
+@admin_required
+def manual_draw_tournament(tid):
+    """Let the admin override the (random) group draw with an explicit group per pair -
+    e.g. to match a physical/manual draw done by hand with paper slips."""
+    tournament = get_tournament(tid)
+    if not tournament or tournament["status"] != "full":
+        flash("אפשר לשבץ בתים ידנית רק אחרי שהטורניר מלא ולפני שהוא התחיל", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+
+    pairs = list_pairs(tid)
+    groups_count = tournament["groups_count"]
+    group_size = len(pairs) // groups_count
+
+    assignments = {}
+    for p in pairs:
+        try:
+            g = int(request.form.get(f"group_{p['id']}", ""))
+        except ValueError:
+            g = None
+        if g is None or not (1 <= g <= groups_count):
+            flash("יש לשבץ כל זוג לבית תקין", "error")
+            return redirect(url_for("tournament_detail", tid=tid))
+        assignments[p["id"]] = g
+
+    sizes = {g: 0 for g in range(1, groups_count + 1)}
+    for g in assignments.values():
+        sizes[g] += 1
+    if any(count != group_size for count in sizes.values()):
+        flash(f"כל בית צריך בדיוק {group_size} זוגות", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+
+    undo_draw(tid)
+    for pid, g in assignments.items():
+        update_pair_group(pid, g)
+    matches = engine.build_group_matches(assignments, groups_count)
+    create_matches([
+        {**m, "tournament_id": tid, "game_target": tournament["game_target"]}
+        for m in matches
+    ])
+    flash("הבתים שובצו ידנית", "success")
     return redirect(url_for("tournament_detail", tid=tid))
 
 

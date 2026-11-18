@@ -178,6 +178,24 @@
           <button type="submit" class="btn-outline">🎲 הגרל מחדש</button>
         </form>
       </div>
+
+      {% if session.get('is_admin') %}
+        <details class="card" style="max-width:520px; margin-bottom:20px;">
+          <summary style="font-weight:700; cursor:pointer;">✋ שיבוץ בתים ידני (למשל לפי הגרלה פיזית)</summary>
+          <form method="POST" action="{{ url_for('manual_draw_tournament', tid=tournament.id) }}" style="margin-top:10px;">
+            <p class="hint">בוחרים לכל זוג את הבית שלו ושומרים — זה מחליף את השיבוץ הנוכחי ומייצר מחדש את משחקי הבתים בהתאם.</p>
+            {% for p in pairs %}
+              <label>{{ pair_name(p) }}</label>
+              <select name="group_{{ p.id }}">
+                {% for g in range(1, tournament.groups_count + 1) %}
+                  <option value="{{ g }}" {% if p.group_number == g %}selected{% endif %}>בית {{ g }}</option>
+                {% endfor %}
+              </select>
+            {% endfor %}
+            <button type="submit" class="btn-block btn-outline">שמירת שיבוץ ידני</button>
+          </form>
+        </details>
+      {% endif %}
     {% endif %}
 
     {% if tournament.status == 'in_progress' and session.get('is_admin') %}

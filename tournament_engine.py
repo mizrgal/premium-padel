@@ -60,6 +60,28 @@ def round_robin_matches(pair_ids):
     ]
 
 
+def build_group_matches(group_assignments, groups_count):
+    """Generate all group-stage matches from an explicit {pair_id: group_number} assignment
+    (e.g. a manual/physical draw), instead of shuffling one ourselves. Same matches shape as
+    run_draw() returns.
+    """
+    matches = []
+    idx = 0
+    for group_number in range(1, groups_count + 1):
+        group_pairs = [pid for pid, g in group_assignments.items() if g == group_number]
+        for round_no, a, b in round_robin_matches(group_pairs):
+            matches.append({
+                "stage": "group",
+                "group_number": group_number,
+                "round_number": round_no,
+                "match_index": idx,
+                "pair_a_id": a,
+                "pair_b_id": b,
+            })
+            idx += 1
+    return matches
+
+
 def run_draw(pair_ids, groups_count=None):
     """Shuffle pairs, assign group numbers, generate all group-stage matches.
 
@@ -79,23 +101,12 @@ def run_draw(pair_ids, groups_count=None):
     random.shuffle(shuffled)
 
     group_assignments = {}
-    matches = []
-    idx = 0
     for g in range(groups_count):
         group_number = g + 1
         group_pairs = shuffled[g * group_size:(g + 1) * group_size]
         for pid in group_pairs:
             group_assignments[pid] = group_number
-        for round_no, a, b in round_robin_matches(group_pairs):
-            matches.append({
-                "stage": "group",
-                "group_number": group_number,
-                "round_number": round_no,
-                "match_index": idx,
-                "pair_a_id": a,
-                "pair_b_id": b,
-            })
-            idx += 1
+    matches = build_group_matches(group_assignments, groups_count)
     return group_assignments, matches
 
 
