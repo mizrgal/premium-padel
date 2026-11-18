@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.13.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.14.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -34,6 +34,8 @@ SERVICE_KEY    = os.environ.get("SUPABASE_SERVICE_KEY", "")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 # non-admin users who may still re-draw a tournament's groups (before it starts)
 REDRAW_USERNAMES = {"חנן ממן"}
+# non-admin users who may also enter/edit match scores
+SCORE_EDITOR_USERNAMES = {"טבקמן", "איתי שדה", "חן טל"}
 
 AVATAR_BUCKET = "avatars"
 AVATAR_MAX_BYTES = 3 * 1024 * 1024
@@ -745,6 +747,16 @@ def can_redraw():
 
 
 app.jinja_env.globals["can_redraw"] = can_redraw
+
+
+def can_edit_scores():
+    """Admins, plus the specific non-admin users in SCORE_EDITOR_USERNAMES."""
+    if session.get("is_admin"):
+        return True
+    return bool(session.get("user_id")) and (session.get("username") or "").strip() in SCORE_EDITOR_USERNAMES
+
+
+app.jinja_env.globals["can_edit_scores"] = can_edit_scores
 
 
 # ─── Tournament engine glue ─────────────────────────────────────────────────
@@ -2533,8 +2545,9 @@ def create_tiebreak(tid, g):
 
 
 @app.route("/matches/<mid>/score", methods=["POST"])
-@admin_required
 def submit_score(mid):
+    if not can_edit_scores():
+        return redirect(url_for("login_page"))
     match = get_match(mid)
     if not match:
         return redirect(url_for("index"))
