@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.14.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.14.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -35,7 +35,7 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 # non-admin users who may still re-draw a tournament's groups (before it starts)
 REDRAW_USERNAMES = {"חנן ממן"}
 # non-admin users who may also enter/edit match scores
-SCORE_EDITOR_USERNAMES = {"טבקמן", "איתי שדה", "חן טל"}
+SCORE_EDITOR_USERNAMES = {"טבקמן", "איתי שדה", "חן טל", "עידן כץ"}
 
 AVATAR_BUCKET = "avatars"
 AVATAR_MAX_BYTES = 3 * 1024 * 1024
