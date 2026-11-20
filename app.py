@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.14.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.15.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -332,11 +332,58 @@ def get_vote_by_name(tid, voter_name):
     return None
 
 
-def cast_vote(tid, voter_name, pair_id, existing_vote_id=None):
+def cast_vote(tid, voter_name, pair_id, existing_vote_id=None, picks=None):
+    """picks (two-stage group vote only): {"groups": {"<g>": {"first": pid, "second": pid}},
+    "winner": pid, "runner_up": pid}. pair_id is always the overall-winner pick, so the
+    tournament page tally and build_predictors keep working unchanged for both vote kinds."""
+    body = {"pair_id": pair_id}
+    if picks is not None:
+        body["picks"] = picks
     if existing_vote_id:
-        db_patch("padel_votes", f"id=eq.{existing_vote_id}", {"pair_id": pair_id})
+        db_patch("padel_votes", f"id=eq.{existing_vote_id}", body)
     else:
-        db_insert("padel_votes", {"tournament_id": tid, "voter_name": voter_name, "pair_id": pair_id})
+        db_insert("padel_votes", {"tournament_id": tid, "voter_name": voter_name, **body})
+
+
+def vote_groups(tournament, pairs):
+    """[(group_number, [pair, ...]), ...] when this tournament gets the two-stage vote
+    (1st+2nd per group, then overall winner+runner-up among those picks) - i.e. it has 2+
+    groups and every pair is already drawn into one. Otherwise None -> plain single pick."""
+    if (tournament.get("groups_count") or 0) < 2 or not pairs:
+        return None
+    if any(p.get("group_number") is None for p in pairs):
+        return None
+    by_group = {}
+    for p in pairs:
+        by_group.setdefault(p["group_number"], []).append(p)
+    if len(by_group) < 2 or any(len(ps) < 2 for ps in by_group.values()):
+        return None
+    return sorted(by_group.items())
+
+
+def build_group_vote_tally(votes, groups):
+    """Counts for the two-stage vote: ({g: {"first": {pid: n}, "second": {pid: n}}},
+    {"winner": {pid: n}, "runner_up": {pid: n}}, complete_vote_count). Old single-pick
+    votes (no picks) only count toward the winner tally."""
+    group_tally = {g: {"first": {}, "second": {}} for g, _ in groups}
+    final_tally = {"winner": {}, "runner_up": {}}
+    complete = 0
+    for v in votes:
+        final_tally["winner"][v["pair_id"]] = final_tally["winner"].get(v["pair_id"], 0) + 1
+        picks = v.get("picks") or {}
+        if not picks.get("groups"):
+            continue
+        complete += 1
+        for g, _ in groups:
+            gp = picks["groups"].get(str(g)) or {}
+            for place in ("first", "second"):
+                pid = gp.get(place)
+                if pid:
+                    group_tally[g][place][pid] = group_tally[g][place].get(pid, 0) + 1
+        ru = picks.get("runner_up")
+        if ru:
+            final_tally["runner_up"][ru] = final_tally["runner_up"].get(ru, 0) + 1
+    return group_tally, final_tally, complete
 
 
 def close_voting(tid):
@@ -1968,6 +2015,7 @@ def tournament_vote(tid):
         return redirect(url_for("index"))
 
     pairs = list_pairs(tid)
+    groups = vote_groups(tournament, pairs)
     cookie_key = f"pp_vote_{tid}"
     my_vote = None
     voted_id = request.cookies.get(cookie_key)
@@ -1979,16 +2027,47 @@ def tournament_vote(tid):
             flash("ההצבעה סגורה", "error")
             return redirect(url_for("tournament_vote", tid=tid))
         voter_name = request.form.get("voter_name", "").strip()
-        pair_id = request.form.get("pair_id", "")
         if len(voter_name) < 2:
             flash("יש להזין שם מלא", "error")
             return redirect(url_for("tournament_vote", tid=tid))
-        if not any(p["id"] == pair_id for p in pairs):
-            flash("יש לבחור זוג מהרשימה", "error")
-            return redirect(url_for("tournament_vote", tid=tid))
+
+        picks = None
+        if groups:
+            # stage 1: 1st + 2nd in every group; stage 2: winner + runner-up, both from
+            # the voter's own stage-1 picks
+            picks = {"groups": {}}
+            advancing = set()
+            for g, gpairs in groups:
+                ids = {p["id"] for p in gpairs}
+                first = request.form.get(f"g{g}_first", "")
+                second = request.form.get(f"g{g}_second", "")
+                if first not in ids or second not in ids or first == second:
+                    flash(f"יש לבחור מקום ראשון ומקום שני (שונים) בבית {g}", "error")
+                    return redirect(url_for("tournament_vote", tid=tid))
+                picks["groups"][str(g)] = {"first": first, "second": second}
+                advancing.update((first, second))
+            pair_id = request.form.get("winner", "")
+            runner_up = request.form.get("runner_up", "")
+            if pair_id not in advancing or runner_up not in advancing or pair_id == runner_up:
+                flash("יש לבחור מנצח ומקום שני (שונים) מתוך הזוגות שבחרת בשלב הבתים", "error")
+                return redirect(url_for("tournament_vote", tid=tid))
+            picks["winner"], picks["runner_up"] = pair_id, runner_up
+        else:
+            pair_id = request.form.get("pair_id", "")
+            if not any(p["id"] == pair_id for p in pairs):
+                flash("יש לבחור זוג מהרשימה", "error")
+                return redirect(url_for("tournament_vote", tid=tid))
 
         existing = my_vote or get_vote_by_name(tid, voter_name)
-        cast_vote(tid, voter_name, pair_id, existing_vote_id=existing["id"] if existing else None)
+        try:
+            cast_vote(tid, voter_name, pair_id, existing_vote_id=existing["id"] if existing else None,
+                      picks=picks)
+        except RuntimeError as e:
+            if "picks" not in str(e):
+                raise
+            app.logger.error("padel_votes.picks column missing - run padel_setup.sql: %s", e)
+            flash("ההצבעה לא נשמרה - חסר עדכון בבסיס הנתונים (padel_votes.picks). יש לפנות למנהל.", "error")
+            return redirect(url_for("tournament_vote", tid=tid))
         if not existing:
             existing = get_vote_by_name(tid, voter_name)
         flash("ההצבעה נשמרה!", "success")
@@ -1997,15 +2076,21 @@ def tournament_vote(tid):
         return resp
 
     tally, total_votes = {}, 0
+    group_tally, final_tally, complete_votes = {}, {}, 0
     if tournament.get("votes_revealed"):
         votes = list_votes(tid)
         total_votes = len(votes)
         for v in votes:
             tally[v["pair_id"]] = tally.get(v["pair_id"], 0) + 1
+        if groups:
+            group_tally, final_tally, complete_votes = build_group_vote_tally(votes, groups)
 
     return render_template(
         "vote.html", tournament=tournament, pairs=pairs, my_vote=my_vote,
-        tally=tally, total_votes=total_votes,
+        tally=tally, total_votes=total_votes, groups=groups,
+        pairs_by_id={p["id"]: p for p in pairs},
+        my_picks=(my_vote or {}).get("picks") or {},
+        group_tally=group_tally, final_tally=final_tally, complete_votes=complete_votes,
     )
 
 

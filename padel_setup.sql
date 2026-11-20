@@ -87,6 +87,9 @@ create table if not exists padel_votes (
 );
 create unique index if not exists idx_padel_votes_unique_voter
   on padel_votes (tournament_id, lower(voter_name));
+-- two-stage vote for tournaments with groups: 1st+2nd per group, then overall winner +
+-- runner-up (see cast_vote). pair_id still holds the winner pick.
+alter table padel_votes add column if not exists picks jsonb;
 
 -- one-off "fun superlatives" group survey, not tied to any tournament. One answer per
 -- (respondent, question) - re-submitting the same name updates their answers.

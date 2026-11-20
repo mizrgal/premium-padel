@@ -17,6 +17,31 @@
         ההצבעה נסגרה — הטורניר הסתיים.
       {% endif %}
     </p>
+  {% elif tournament.votes_revealed and groups %}
+    {% macro tally_rows(counts, candidates, total) %}
+      <div class="vote-tally" style="margin-bottom:6px;">
+        {% for p in candidates %}
+          {% set count = counts.get(p.id, 0) %}
+          {% set pct = (count / total * 100) if total else 0 %}
+          <div class="vote-tally-row">
+            <div class="vote-tally-label">{{ pair_name_text(p) }}</div>
+            <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+            <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endmacro %}
+    <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
+    <h2 class="survey-question" style="margin-top:20px;">🏆 המנצח הגדול</h2>
+    {{ tally_rows(final_tally.winner, pairs, total_votes) }}
+    <h2 class="survey-question" style="margin-top:24px;">🥈 מקום שני בטורניר</h2>
+    {{ tally_rows(final_tally.runner_up, pairs, complete_votes) }}
+    {% for g, gpairs in groups %}
+      <h2 class="survey-question" style="margin-top:24px;">בית {{ g }} — מקום ראשון</h2>
+      {{ tally_rows(group_tally[g].first, gpairs, complete_votes) }}
+      <h2 class="survey-question" style="margin-top:14px;">בית {{ g }} — מקום שני</h2>
+      {{ tally_rows(group_tally[g].second, gpairs, complete_votes) }}
+    {% endfor %}
   {% elif tournament.votes_revealed %}
     <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
     <div class="vote-tally">
@@ -30,6 +55,124 @@
         </div>
       {% endfor %}
     </div>
+  {% elif groups %}
+    <p class="hint" style="margin:10px 0 16px;">ההצבעה בשני שלבים: קודם בוחרים מי יסיים ראשון ושני בכל בית, ואז — מתוך הזוגות שבחרת — מי ינצח בטורניר ומי יגיע למקום השני. כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
+    {% if my_vote and not my_picks.get('groups') %}
+      <p class="hint" style="margin:0 0 12px; font-weight:700;">ההצבעה שלך נשמרה בשיטה הקודמת (רק מנצח) — יש להצביע מחדש בשני השלבים.</p>
+    {% endif %}
+    <form method="POST" class="vote-form" id="group-vote-form">
+      <input type="text" name="voter_name" placeholder="השם המלא שלך" required minlength="2"
+             value="{{ my_vote.voter_name if my_vote else '' }}" style="margin-bottom:6px;">
+
+      <h2 class="survey-question" style="margin-top:14px;">שלב 1 — הבתים</h2>
+      {% for g, gpairs in groups %}
+        {% set gp = (my_picks.get('groups') or {}).get(g|string) or {} %}
+        {% for place, label in [('first', 'מקום ראשון'), ('second', 'מקום שני')] %}
+          <p class="hint" style="margin:12px 0 4px; font-weight:700;">{{ '🥇' if place == 'first' else '🥈' }} {{ label }} בבית {{ g }}</p>
+          {% for p in gpairs %}
+            <label class="vote-option{{ ' selected' if gp.get(place) == p.id else '' }}">
+              <input type="radio" name="g{{ g }}_{{ place }}" value="{{ p.id }}" data-group="{{ g }}"
+                     data-name="{{ pair_name_text(p) }}"
+                     {% if gp.get(place) == p.id %}checked{% endif %} required>
+              <span>{{ pair_name_text(p) }}</span>
+            </label>
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+
+      <h2 class="survey-question" style="margin-top:22px;">שלב 2 — הטורניר</h2>
+      <p class="hint" style="margin:8px 0 4px; font-weight:700;">🏆 המנצח הגדול</p>
+      <div id="winner-options"></div>
+      <p class="hint" style="margin:12px 0 4px; font-weight:700;">🥈 מקום שני בטורניר</p>
+      <div id="runner-up-options"></div>
+
+      <button type="submit" class="btn-block btn-gold" style="margin-top:14px;">
+        {{ 'עדכן/י הצבעה' if my_vote and my_picks.get('groups') else 'הצבע/י' }}
+      </button>
+    </form>
+
+    {% if session.get('is_admin') %}
+      <form method="POST" action="{{ url_for('close_voting_route', tid=tournament.id) }}"
+            style="margin-top:20px;" onsubmit="return confirm('לסגור את ההצבעה ולפרסם את התוצאות? אי אפשר להצביע יותר אחרי זה.');">
+        <button type="submit" class="btn btn-outline">🔒 סגור הצבעה ופרסם תוצאות</button>
+      </form>
+    {% endif %}
+
+    <script>
+      (function () {
+        var form = document.getElementById('group-vote-form');
+        var current = { winner: {{ (my_picks.get('winner') or '') | tojson }},
+                        runner_up: {{ (my_picks.get('runner_up') or '') | tojson }} };
+        var groups = {{ groups | map('first') | list | tojson }};
+
+        function syncGroup(g) {
+          // the same pair can't be both 1st and 2nd in a group
+          ['first', 'second'].forEach(function (place) {
+            var other = place === 'first' ? 'second' : 'first';
+            var otherChecked = form.querySelector('input[name="g' + g + '_' + other + '"]:checked');
+            form.querySelectorAll('input[name="g' + g + '_' + place + '"]').forEach(function (input) {
+              var clash = otherChecked && otherChecked.value === input.value;
+              input.disabled = !!clash;
+              input.parentNode.style.opacity = clash ? '0.4' : '';
+              input.parentNode.classList.toggle('selected', input.checked);
+            });
+          });
+        }
+
+        function advancing() {
+          var list = [];
+          groups.forEach(function (g) {
+            ['first', 'second'].forEach(function (place) {
+              var c = form.querySelector('input[name="g' + g + '_' + place + '"]:checked');
+              if (c && !list.some(function (x) { return x.id === c.value; })) {
+                list.push({ id: c.value, name: c.dataset.name });
+              }
+            });
+          });
+          return list;
+        }
+
+        function buildFinal(field, containerId, otherField) {
+          var container = document.getElementById(containerId);
+          var checked = form.querySelector('input[name="' + field + '"]:checked');
+          if (checked) current[field] = checked.value;
+          var otherChecked = form.querySelector('input[name="' + otherField + '"]:checked');
+          var otherVal = otherChecked ? otherChecked.value : current[otherField];
+          var options = advancing();
+          container.innerHTML = '';
+          if (options.length < groups.length * 2) {
+            container.innerHTML = '<p class="muted">בחר/י קודם מקום ראשון ושני בכל הבתים למעלה</p>';
+            return;
+          }
+          options.forEach(function (o) {
+            if (o.id === otherVal) return;
+            var label = document.createElement('label');
+            label.className = 'vote-option' + (o.id === current[field] ? ' selected' : '');
+            var input = document.createElement('input');
+            input.type = 'radio'; input.name = field; input.value = o.id; input.required = true;
+            if (o.id === current[field]) input.checked = true;
+            var span = document.createElement('span');
+            span.textContent = o.name;
+            label.appendChild(input); label.appendChild(span);
+            container.appendChild(label);
+          });
+        }
+
+        function refresh() {
+          groups.forEach(syncGroup);
+          buildFinal('winner', 'winner-options', 'runner_up');
+          buildFinal('runner_up', 'runner-up-options', 'winner');
+        }
+
+        form.addEventListener('change', function (e) {
+          if (e.target.name === 'winner' || e.target.name === 'runner_up') {
+            current[e.target.name] = e.target.value;
+          }
+          refresh();
+        });
+        refresh();
+      })();
+    </script>
   {% else %}
     <p class="hint" style="margin:10px 0 16px;">כל אדם יכול להצביע פעם אחת (לפי השם) — הצבעה חוזרת עם אותו שם מעדכנת את הבחירה הקודמת.</p>
     <form method="POST" class="vote-form">
