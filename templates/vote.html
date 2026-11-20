@@ -32,6 +32,38 @@
       </div>
     {% endmacro %}
     <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
+
+    {% macro leader_card(label, icon, leader_list, tone) %}
+      <div class="vote-leader-card {{ tone }}">
+        <div class="vote-leader-label">{{ icon }} {{ label }}</div>
+        {% if leader_list %}
+          {% if leader_list|length > 1 %}
+            <div class="vote-leader-name muted" style="font-size:12px; font-weight:700; margin-bottom:2px;">תיקו:</div>
+          {% endif %}
+          <div class="vote-leader-name">
+            {% for item in leader_list %}{{ pair_name_text(item.pair) }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+          </div>
+          <div class="vote-leader-pct">{{ leader_list[0].count }} קולות ({{ leader_list[0].pct }}%){% if leader_list|length > 1 %} כל אחד{% endif %}</div>
+        {% else %}
+          <div class="vote-leader-name muted">אין עדיין הצבעות</div>
+        {% endif %}
+      </div>
+    {% endmacro %}
+
+    <div class="vote-summary-grid" style="margin-bottom:10px;">
+      {{ leader_card('המנצח הגדול', '🏆', leaders.winner, 'gold') }}
+      {{ leader_card('מקום שני בטורניר', '🥈', leaders.runner_up, 'silver') }}
+    </div>
+    <div class="vote-summary-grid" style="margin-bottom:24px;">
+      {% for g, gpairs in groups %}
+        {{ leader_card('בית ' ~ g ~ ' — מקום ראשון', '🥇', leaders.groups[g].first, 'gold') }}
+        {{ leader_card('בית ' ~ g ~ ' — מקום שני', '🥈', leaders.groups[g].second, 'silver') }}
+      {% endfor %}
+    </div>
+
+    <details class="about-card">
+      <summary style="padding:14px 20px; font-weight:700;">הפילוח המלא של כל הקולות</summary>
+      <div style="padding:4px 20px 20px;">
     <h2 class="survey-question" style="margin-top:20px;">🏆 המנצח הגדול</h2>
     {{ tally_rows(final_tally.winner, pairs, total_votes) }}
     <h2 class="survey-question" style="margin-top:24px;">🥈 מקום שני בטורניר</h2>
@@ -42,6 +74,8 @@
       <h2 class="survey-question" style="margin-top:14px;">בית {{ g }} — מקום שני</h2>
       {{ tally_rows(group_tally[g].second, gpairs, complete_votes) }}
     {% endfor %}
+      </div>
+    </details>
   {% elif tournament.votes_revealed %}
     <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
     <div class="vote-tally">

@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.15.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.16.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -384,6 +384,22 @@ def build_group_vote_tally(votes, groups):
         if ru:
             final_tally["runner_up"][ru] = final_tally["runner_up"].get(ru, 0) + 1
     return group_tally, final_tally, complete
+
+
+def vote_leaders(counts, pairs_by_id, total):
+    """The pair(s) tied for the most votes in a counts dict ({pair_id: n}), as
+    [{"pair": ..., "count": n, "pct": p}, ...] - more than one entry means a tie. Empty if
+    nobody has any votes yet."""
+    if not counts or not total:
+        return []
+    top = max(counts.values())
+    if top <= 0:
+        return []
+    pct = round(top / total * 100)
+    return [
+        {"pair": pairs_by_id[pid], "count": top, "pct": pct}
+        for pid, c in counts.items() if c == top and pid in pairs_by_id
+    ]
 
 
 def close_voting(tid):
@@ -2077,6 +2093,8 @@ def tournament_vote(tid):
 
     tally, total_votes = {}, 0
     group_tally, final_tally, complete_votes = {}, {}, 0
+    leaders = None
+    pairs_by_id = {p["id"]: p for p in pairs}
     if tournament.get("votes_revealed"):
         votes = list_votes(tid)
         total_votes = len(votes)
@@ -2084,13 +2102,25 @@ def tournament_vote(tid):
             tally[v["pair_id"]] = tally.get(v["pair_id"], 0) + 1
         if groups:
             group_tally, final_tally, complete_votes = build_group_vote_tally(votes, groups)
+            leaders = {
+                "winner": vote_leaders(final_tally.get("winner", {}), pairs_by_id, total_votes),
+                "runner_up": vote_leaders(final_tally.get("runner_up", {}), pairs_by_id, complete_votes),
+                "groups": {
+                    g: {
+                        "first": vote_leaders(group_tally[g]["first"], pairs_by_id, complete_votes),
+                        "second": vote_leaders(group_tally[g]["second"], pairs_by_id, complete_votes),
+                    }
+                    for g, _ in groups
+                },
+            }
 
     return render_template(
         "vote.html", tournament=tournament, pairs=pairs, my_vote=my_vote,
         tally=tally, total_votes=total_votes, groups=groups,
-        pairs_by_id={p["id"]: p for p in pairs},
+        pairs_by_id=pairs_by_id,
         my_picks=(my_vote or {}).get("picks") or {},
         group_tally=group_tally, final_tally=final_tally, complete_votes=complete_votes,
+        leaders=leaders,
     )
 
 
