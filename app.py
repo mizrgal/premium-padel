@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.16.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.16.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -395,7 +395,7 @@ def vote_leaders(counts, pairs_by_id, total):
     top = max(counts.values())
     if top <= 0:
         return []
-    pct = round(top / total * 100)
+    pct = int(top / total * 100)  # floor, same rounding as the detailed breakdown below it
     return [
         {"pair": pairs_by_id[pid], "count": top, "pct": pct}
         for pid, c in counts.items() if c == top and pid in pairs_by_id
