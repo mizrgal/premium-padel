@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.17.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.18.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -1016,12 +1016,23 @@ def _expand_into_legs(next_matches, tid, next_stage, game_target, games_per_matc
     return rows
 
 
+def _advance_from_stage(tournament, from_stage, matches, game_target, games_per_matchup):
+    """Shared tail of advance_to_next_stage and force_advance_group_stage: from_stage is
+    already confirmed ready to move on from - generate and save the next stage's matches."""
+    tid = tournament["id"]
+    pairs = list_pairs(tid)
+    stage_matches = sorted([m for m in matches if m["stage"] == from_stage], key=lambda m: m["match_index"])
+    next_stage, next_matches = _next_stage_matches(tournament, from_stage, stage_matches, pairs)
+    if next_stage is None:
+        return
+    create_matches(_expand_into_legs(next_matches, tid, next_stage, game_target, games_per_matchup))
+
+
 def advance_to_next_stage(tournament, game_target, games_per_matchup=1):
     """Admin-triggered: the current stage just finished and nothing has been generated for
     the next one yet. Creates the next stage's matches with the chosen game_target and
     number of legs (1 or 2) per matchup."""
-    tid = tournament["id"]
-    matches = list_matches(tid)
+    matches = list_matches(tournament["id"])
     from_stage = _latest_complete_stage(tournament, matches)
     if from_stage is None:
         return
@@ -1029,13 +1040,34 @@ def advance_to_next_stage(tournament, game_target, games_per_matchup=1):
     next_stage_name = order[order.index(from_stage) + 1]
     if any(m["stage"] == next_stage_name for m in matches):
         return  # already advanced - never overwrite
+    _advance_from_stage(tournament, from_stage, matches, game_target, games_per_matchup)
 
-    pairs = list_pairs(tid)
-    stage_matches = sorted([m for m in matches if m["stage"] == from_stage], key=lambda m: m["match_index"])
-    next_stage, next_matches = _next_stage_matches(tournament, from_stage, stage_matches, pairs)
-    if next_stage is None:
+
+def group_stage_can_force_advance(tournament, matches):
+    """True if the group stage has matches but isn't fully played yet, and the admin hasn't
+    already advanced past it - i.e. a 'finish the group stage now' action should be offered
+    (e.g. the top spots in every group are already decided and the remaining games don't
+    matter). Only applies when there's a next stage to advance to - a single-group tournament
+    has no crossover and is ended instead via finish_tournament_early."""
+    order = stage_order_for(tournament)
+    if len(order) < 2:
+        return False
+    group_matches = [m for m in matches if m["stage"] == "group"]
+    if not group_matches:
+        return False
+    if any(m["stage"] == order[1] for m in matches):
+        return False  # already advanced
+    return any(m["winner_pair_id"] is None for m in group_matches)
+
+
+def force_advance_group_stage(tournament, game_target, games_per_matchup=1):
+    """Admin-triggered early end of the group stage: the matches still unplayed are left
+    exactly as they are (no result), and the next (crossover) stage is generated from the
+    group standings as they currently stand."""
+    matches = list_matches(tournament["id"])
+    if not group_stage_can_force_advance(tournament, matches):
         return
-    create_matches(_expand_into_legs(next_matches, tid, next_stage, game_target, games_per_matchup))
+    _advance_from_stage(tournament, "group", matches, game_target, games_per_matchup)
 
 
 def recompute_from_stage(tournament, edited_stage):
@@ -1992,6 +2024,9 @@ def tournament_detail(tid):
     )
     editable = editable_stages(tournament, matches)
     pending_stage = stage_pending_advance(tournament, matches)
+    can_force_advance_group = (
+        tournament["status"] == "in_progress" and group_stage_can_force_advance(tournament, matches)
+    )
 
     # fetched regardless of tournament status (not just while status == 'full') so the admin
     # can still close out and reveal a poll they forgot about after the tournament moved on
@@ -2015,6 +2050,7 @@ def tournament_detail(tid):
         winner_pair=winner_pair,
         editable_stages=editable,
         pending_stage=pending_stage,
+        can_force_advance_group=can_force_advance_group,
         early_winner_id=early_winner_id,
         vote_tally=vote_tally,
         vote_voters=vote_voters,
@@ -2605,6 +2641,32 @@ def advance_stage(tid):
         return redirect(url_for("tournament_detail", tid=tid))
     advance_to_next_stage(tournament, int(game_target), int(games_per_matchup))
     flash("השלב הבא נוצר!", "success")
+    return redirect(url_for("tournament_detail", tid=tid))
+
+
+@app.route("/tournaments/<tid>/force-advance-group", methods=["POST"])
+@admin_required
+def force_advance_group_route(tid):
+    """Admin ends the group stage now, even with some matches still unplayed (e.g. the top 2
+    in every group are already decided and the rest don't matter) - advances straight to the
+    next (crossover) stage. Unplayed group matches stay without a result."""
+    tournament = get_tournament(tid)
+    if not tournament:
+        return redirect(url_for("index"))
+    matches = list_matches(tid)
+    if not group_stage_can_force_advance(tournament, matches):
+        flash("אין שלב בתים פתוח שאפשר לסיים ידנית כרגע", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+    game_target = request.form.get("game_target", "")
+    games_per_matchup = request.form.get("games_per_matchup", "1")
+    if game_target not in ("4", "6", "8"):
+        flash("יש לבחור עד כמה games תקין", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+    if games_per_matchup not in ("1", "2"):
+        flash("יש לבחור כמות משחקים תקינה", "error")
+        return redirect(url_for("tournament_detail", tid=tid))
+    force_advance_group_stage(tournament, int(game_target), int(games_per_matchup))
+    flash("שלב הבתים הסתיים ועברנו לשלב הבא. המשחקים שלא שוחקו נשארו בלי תוצאה.", "success")
     return redirect(url_for("tournament_detail", tid=tid))
 
 

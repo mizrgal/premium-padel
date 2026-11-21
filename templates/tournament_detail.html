@@ -217,6 +217,29 @@
       </details>
     {% endif %}
 
+    {% if can_force_advance_group %}
+      <details class="card" style="max-width:420px; margin-bottom:20px; border:2px solid var(--gold);">
+        <summary style="font-weight:700; cursor:pointer;">⏭️ סיום שלב הבתים עכשיו</summary>
+        <form method="POST" action="{{ url_for('force_advance_group_route', tid=tournament.id) }}"
+              onsubmit="return confirm('לסיים את שלב הבתים עכשיו ולעבור לשלב הבא? הדירוג בבתים יחושב לפי המשחקים שכבר שוחקו, ומשחקים שלא שוחקו יישארו בלי תוצאה.');"
+              style="margin-top:10px;">
+          <p class="hint">למקרה שהמשחקים שנותרו בבתים לא משנים את הדירוג ואפשר לעבור הלאה. הדירוג יחושב לפי המשחקים שכבר שוחקו, ומשחקים שלא שוחקו יישארו בלי תוצאה.</p>
+          <label>כמה משחקים לכל זוגיה בשלב הבא?</label>
+          <select name="games_per_matchup" required>
+            <option value="1">משחק אחד</option>
+            <option value="2">שני משחקים (טיי-ברייק אם 1-1)</option>
+          </select>
+          <label>עד כמה משחקים בכל סט?</label>
+          <select name="game_target" required>
+            <option value="4">עד 4 משחקים</option>
+            <option value="6">עד 6 משחקים</option>
+            <option value="8">עד 8 משחקים</option>
+          </select>
+          <button type="submit" class="btn-block btn-gold">סיימו את שלב הבתים ועברו לשלב הבא</button>
+        </form>
+      </details>
+    {% endif %}
+
     {% if pending_stage %}
       {% if session.get('is_admin') %}
         <div class="card" style="max-width:420px; border:2px solid var(--gold); margin-bottom:20px;">
