@@ -135,7 +135,7 @@ def compute_group_standings(pair_ids, group_matches, tiebreak_winners=None):
     of surfacing it for a tie-break match.
     """
     tiebreak_winners = tiebreak_winners or {}
-    stats = {pid: {"wins": 0, "games_won": 0, "games_lost": 0} for pid in pair_ids}
+    stats = {pid: {"wins": 0, "losses": 0, "games_won": 0, "games_lost": 0} for pid in pair_ids}
     for m in group_matches:
         if m.get("winner_pair_id") is None:
             continue
@@ -146,11 +146,15 @@ def compute_group_standings(pair_ids, group_matches, tiebreak_winners=None):
             stats[a]["games_lost"] += sb
             if m["winner_pair_id"] == a:
                 stats[a]["wins"] += 1
+            else:
+                stats[a]["losses"] += 1
         if b in stats:
             stats[b]["games_won"] += sb
             stats[b]["games_lost"] += sa
             if m["winner_pair_id"] == b:
                 stats[b]["wins"] += 1
+            else:
+                stats[b]["losses"] += 1
 
     def stat_key(pid):
         s = stats[pid]

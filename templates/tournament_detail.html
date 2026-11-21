@@ -281,12 +281,13 @@
         <div class="standings-card">
           <div class="table-scroll">
             <table class="standings-table">
-              <tr><th>#</th><th>זוג</th><th>נצחונות</th><th>הפרש משחקים</th></tr>
+              <tr><th>#</th><th>זוג</th><th>נצחונות</th><th>הפסדים</th><th>הפרש משחקים</th></tr>
               {% for row in data.standings %}
                 <tr class="{{ 'rank-' ~ loop.index if loop.index <= 3 else '' }}">
                   <td><span class="rank-badge rank-badge-{{ loop.index }}">{{ loop.index }}</span></td>
                   <td class="pair-cell">{{ pair_name(row.pair) }}</td>
                   <td>{{ row.wins }}</td>
+                  <td>{{ row.losses }}</td>
                   <td>{{ '+' if row.games_won - row.games_lost >= 0 else '' }}{{ row.games_won - row.games_lost }} <span class="muted">({{ row.games_won }}:{{ row.games_lost }})</span></td>
                 </tr>
               {% endfor %}
