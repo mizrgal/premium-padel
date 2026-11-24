@@ -1,31 +1,37 @@
 {% extends "base_app.html" %}
 {% block title %}{{ title }} – Premium Padel{% endblock %}
 {% block content %}
-  <div class="ofir-hero">
-    <img src="{{ url_for('static', filename='ofir-amram.jpg') }}" alt="אופיר עמרם" class="ofir-photo">
-    <h1>🎖️ {{ title }}</h1>
-    <p class="ofir-subtitle">מתגייס לצה"ל — ומזמין את כולם לחגוג איתו על המגרש!</p>
+  <div class="ofir-row">
+    <img class="ofir-flyer-side ofir-flyer-left" src="{{ url_for('static', filename='ofir-flyer.jpg') }}" alt="" aria-hidden="true">
 
-    <div class="ofir-meta">
-      <span class="meta-item">📅 {{ date_label }}</span>
-      <span class="meta-item">⏰ {{ time_label }}</span>
-      <span class="meta-item">📍 {{ location }}</span>
-      <span class="meta-item">🎯 {{ level }}</span>
-      <span class="meta-item">👥 {{ pairs_count }} זוגות</span>
+    <div class="ofir-hero">
+      <img src="{{ url_for('static', filename='ofir-amram.jpg') }}" alt="אופיר עמרם" class="ofir-photo">
+      <h1>🎖️ {{ title }}</h1>
+      <p class="ofir-subtitle">מתגייס לצה"ל — ומזמין את כולם לחגוג איתו על המגרש!</p>
+
+      <div class="ofir-meta">
+        <span class="meta-item">📅 {{ date_label }}</span>
+        <span class="meta-item">⏰ {{ time_label }}</span>
+        <span class="meta-item">📍 {{ location }}</span>
+        <span class="meta-item">🎯 {{ level }}</span>
+        <span class="meta-item">👥 {{ pairs_count }} זוגות</span>
+      </div>
+
+      <div id="ofir-countdown" class="countdown">
+        <div class="countdown-unit"><div class="num" id="cd-days">–</div><div class="unit-label">ימים</div></div>
+        <div class="countdown-unit"><div class="num" id="cd-hours">–</div><div class="unit-label">שעות</div></div>
+        <div class="countdown-unit"><div class="num" id="cd-mins">–</div><div class="unit-label">דקות</div></div>
+        <div class="countdown-unit"><div class="num" id="cd-secs">–</div><div class="unit-label">שניות</div></div>
+      </div>
+      <p id="ofir-countdown-done" class="countdown-done" hidden>🎾 הטורניר התחיל — בהצלחה לכולם!</p>
+
+      <p class="ofir-sponsor">הטורניר בחסות OA</p>
     </div>
 
-    <div id="ofir-countdown" class="countdown">
-      <div class="countdown-unit"><div class="num" id="cd-days">–</div><div class="unit-label">ימים</div></div>
-      <div class="countdown-unit"><div class="num" id="cd-hours">–</div><div class="unit-label">שעות</div></div>
-      <div class="countdown-unit"><div class="num" id="cd-mins">–</div><div class="unit-label">דקות</div></div>
-      <div class="countdown-unit"><div class="num" id="cd-secs">–</div><div class="unit-label">שניות</div></div>
-    </div>
-    <p id="ofir-countdown-done" class="countdown-done" hidden>🎾 הטורניר התחיל — בהצלחה לכולם!</p>
-
-    <p class="ofir-sponsor">הטורניר בחסות OA</p>
+    <img class="ofir-flyer-side ofir-flyer-right" src="{{ url_for('static', filename='ofir-flyer.jpg') }}" alt="" aria-hidden="true">
   </div>
 
-  <div class="card" style="max-width:360px; margin:0 auto 22px; padding:10px; text-align:center;">
+  <div class="card ofir-flyer-mobile" style="max-width:360px; margin:0 auto 22px; padding:10px; text-align:center;">
     <img src="{{ url_for('static', filename='ofir-flyer.jpg') }}" alt="הפלייר הרשמי של הטורניר" style="width:100%; border-radius:12px; display:block;">
     <p class="hint" style="margin:10px 0 0;">📋 הפלייר הרשמי — אפשר לשתף הלאה!</p>
   </div>
