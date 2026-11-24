@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.20.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.20.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2342,14 +2342,8 @@ def close_king_cross_route():
 def ofir_tournament():
     """No login required to view - a one-off hype/info page for אופיר עמרם's enlistment
     tournament (03.12.2026, פאדל גולף קיסריה), same open-access pattern as the
-    Americano/king-cross pages. The 24-pair entry list and group (house) seeding board are
-    admin-managed (see add/delete/assign routes below) and visible to everyone."""
-    pairs = list_ofir_pairs()
-    unassigned_pairs = [p for p in pairs if p["group_number"] is None]
-    pairs_by_group = {}
-    for p in pairs:
-        if p["group_number"] is not None:
-            pairs_by_group.setdefault(p["group_number"], []).append(p)
+    Americano/king-cross pages. The entry list/seeding board lives on its own page
+    (ofir_tournament_entry) reached via the "כניסה לטורניר" button here."""
     return render_template(
         "ofir_tournament.html",
         title=OFIR_TOURNAMENT_TITLE,
@@ -2361,6 +2355,24 @@ def ofir_tournament():
         pairs_count=OFIR_TOURNAMENT_PAIRS,
         prizes=OFIR_TOURNAMENT_PRIZES,
         perks=OFIR_TOURNAMENT_PERKS,
+    )
+
+
+@app.route("/ofir-tournament/entry")
+def ofir_tournament_entry():
+    """No login required to view - the 24-pair entry list and 6-house seeding board for
+    אופיר עמרם's tournament. Admin manages it (add/delete/drag); everyone else sees it
+    read-only."""
+    pairs = list_ofir_pairs()
+    unassigned_pairs = [p for p in pairs if p["group_number"] is None]
+    pairs_by_group = {}
+    for p in pairs:
+        if p["group_number"] is not None:
+            pairs_by_group.setdefault(p["group_number"], []).append(p)
+    return render_template(
+        "ofir_tournament_entry.html",
+        title=OFIR_TOURNAMENT_TITLE,
+        pairs_count=OFIR_TOURNAMENT_PAIRS,
         groups_count=OFIR_TOURNAMENT_GROUPS,
         group_size=OFIR_TOURNAMENT_PAIRS // OFIR_TOURNAMENT_GROUPS,
         pairs=pairs,
@@ -2375,19 +2387,19 @@ def add_ofir_pair_route():
     name = request.form.get("name", "").strip()
     if not name:
         flash("יש להזין שם לזוג", "error")
-        return redirect(url_for("ofir_tournament"))
+        return redirect(url_for("ofir_tournament_entry"))
     if len(list_ofir_pairs()) >= OFIR_TOURNAMENT_PAIRS:
         flash(f"כבר יש {OFIR_TOURNAMENT_PAIRS} זוגות ברשימה", "error")
-        return redirect(url_for("ofir_tournament"))
+        return redirect(url_for("ofir_tournament_entry"))
     add_ofir_pair(name)
-    return redirect(url_for("ofir_tournament"))
+    return redirect(url_for("ofir_tournament_entry"))
 
 
 @app.route("/ofir-tournament/pairs/<pid>/delete", methods=["POST"])
 @admin_required
 def delete_ofir_pair_route(pid):
     delete_ofir_pair(pid)
-    return redirect(url_for("ofir_tournament"))
+    return redirect(url_for("ofir_tournament_entry"))
 
 
 @app.route("/ofir-tournament/pairs/<pid>/assign", methods=["POST"])

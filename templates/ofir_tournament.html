@@ -53,52 +53,9 @@
     {% endfor %}
   </div>
 
-  {% macro ofir_pair_card(p) %}
-    <div class="ofir-pair-card" data-pair-id="{{ p.id }}"{% if session.get('is_admin') %} draggable="true"{% endif %}>
-      <span>{{ p.name }}</span>
-      {% if session.get('is_admin') %}
-        <form method="POST" action="{{ url_for('delete_ofir_pair_route', pid=p.id) }}"
-              onsubmit="return confirm('למחוק את {{ p.name }}?');">
-          <button type="submit" class="remove-pair" draggable="false" title="מחיקה">✕</button>
-        </form>
-      {% endif %}
-    </div>
-  {% endmacro %}
-
-  <h2>🏟️ כניסה לטורניר</h2>
-
-  {% if session.get('is_admin') %}
-    <form method="POST" action="{{ url_for('add_ofir_pair_route') }}" class="ofir-add-pair-form">
-      <input type="text" name="name" placeholder="שם הזוג (למשל: אופיר / דני)" required
-             {% if pairs|length >= pairs_count %}disabled{% endif %}>
-      <button type="submit" class="btn-gold">הוספת זוג</button>
-    </form>
-    <p class="hint">גוררים זוג מהרשימה לבית הרצוי. {{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
-  {% endif %}
-
-  <div id="ofir-pool" class="ofir-entry-pool ofir-dropzone" data-group="">
-    {% for p in unassigned_pairs %}
-      {{ ofir_pair_card(p) }}
-    {% endfor %}
-    {% if not unassigned_pairs %}
-      <p class="muted" style="margin:0;">אין זוגות ממתינים לשיבוץ.</p>
-    {% endif %}
-  </div>
-
-  <div class="ofir-groups-grid">
-    {% for g in range(1, groups_count + 1) %}
-      <div class="ofir-group-box">
-        <div class="ofir-group-title">
-          בית {{ g }}
-          <span class="count">{{ pairs_by_group.get(g, [])|length }}/{{ group_size }}</span>
-        </div>
-        <div class="ofir-group-cards ofir-dropzone" data-group="{{ g }}">
-          {% for p in pairs_by_group.get(g, []) %}
-            {{ ofir_pair_card(p) }}
-          {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
+  <div class="card" style="max-width:420px; text-align:center;">
+    <p style="margin-bottom:12px;">{{ pairs_count }} זוגות, 6 בתים — עוקבים אחרי מי כבר נרשם ומשובץ.</p>
+    <a href="{{ url_for('ofir_tournament_entry') }}" class="btn btn-gold btn-block">🏟️ כניסה לטורניר</a>
   </div>
 
   <script>
@@ -131,60 +88,4 @@
       var timer = setInterval(tick, 1000);
     })();
   </script>
-
-  {% if session.get('is_admin') %}
-    <script>
-      (function () {
-        document.querySelectorAll('.ofir-pair-card[draggable="true"]').forEach(function (card) {
-          card.addEventListener('dragstart', function (e) {
-            e.dataTransfer.setData('text/plain', card.dataset.pairId);
-            e.dataTransfer.effectAllowed = 'move';
-            card.classList.add('dragging');
-          });
-          card.addEventListener('dragend', function () {
-            card.classList.remove('dragging');
-          });
-        });
-
-        function updateCounts() {
-          document.querySelectorAll('.ofir-group-box').forEach(function (box) {
-            var countEl = box.querySelector('.count');
-            if (!countEl) return;
-            var n = box.querySelectorAll('.ofir-pair-card').length;
-            var total = countEl.textContent.split('/')[1] || '';
-            countEl.textContent = n + '/' + total;
-          });
-        }
-
-        document.querySelectorAll('.ofir-dropzone').forEach(function (zone) {
-          zone.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            zone.classList.add('drag-over');
-          });
-          zone.addEventListener('dragleave', function () {
-            zone.classList.remove('drag-over');
-          });
-          zone.addEventListener('drop', function (e) {
-            e.preventDefault();
-            zone.classList.remove('drag-over');
-            var pairId = e.dataTransfer.getData('text/plain');
-            var card = document.querySelector('.ofir-pair-card[data-pair-id="' + pairId + '"]');
-            if (!card) return;
-            var emptyMsg = zone.id === 'ofir-pool' ? zone.querySelector('.muted') : null;
-            if (emptyMsg) emptyMsg.hidden = true;
-            zone.appendChild(card);
-            updateCounts();
-            fetch('/ofir-tournament/pairs/' + pairId + '/assign', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: 'group_number=' + encodeURIComponent(zone.dataset.group || ''),
-            }).then(function (r) {
-              if (!r.ok) location.reload();
-            }).catch(function () { location.reload(); });
-          });
-        });
-      })();
-    </script>
-  {% endif %}
 {% endblock %}
