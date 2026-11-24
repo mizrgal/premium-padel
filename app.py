@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.21.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.21.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2467,19 +2467,24 @@ def upload_ofir_pair_photo_route(pid):
 @app.route("/ofir-tournament/pairs/<pid>/assign", methods=["POST"])
 @admin_required
 def assign_ofir_pair_route(pid):
-    """Called over fetch() by the drag-and-drop board when a pair card is dropped into a
-    house (group_number 1..6) or back into the unassigned pool (empty group_number)."""
+    """Moves a pair into a house (group_number 1..6) or back to the unassigned pool (empty
+    group_number) - called both by the drag-and-drop board (fetch(), which follows this
+    redirect and treats it as success) and by the plain <select> fallback (a normal form
+    submit, which needs a real redirect, not JSON - the select is the one that works on
+    touch/mobile, where native HTML5 drag-and-drop doesn't)."""
     raw = request.form.get("group_number", "").strip()
     group_number = None
     if raw:
         try:
             group_number = int(raw)
         except ValueError:
-            return jsonify({"ok": False, "error": "invalid group_number"}), 400
+            flash("שיבוץ לא תקין", "error")
+            return redirect(url_for("ofir_tournament_entry"))
         if not (1 <= group_number <= OFIR_TOURNAMENT_GROUPS):
-            return jsonify({"ok": False, "error": "group_number out of range"}), 400
+            flash("שיבוץ לא תקין", "error")
+            return redirect(url_for("ofir_tournament_entry"))
     assign_ofir_pair(pid, group_number)
-    return jsonify({"ok": True})
+    return redirect(url_for("ofir_tournament_entry"))
 
 
 @app.route("/americano")

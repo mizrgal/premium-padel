@@ -422,6 +422,17 @@ tr:last-child td { border-bottom: none; }
 }
 .ofir-pair-card .remove-pair:hover { color: var(--red); background: none; }
 
+.ofir-assign-form { margin: 0; flex-shrink: 0; }
+.ofir-assign-form select {
+  min-height: 30px;
+  width: auto;
+  max-width: 100px;
+  padding: 4px 8px;
+  margin-bottom: 0;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
 .ofir-groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .ofir-group-box { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; }
 .ofir-group-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 10px; }

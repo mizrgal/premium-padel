@@ -41,9 +41,17 @@
         {% endif %}
       </div>
       {% if session.get('is_admin') %}
+        <form method="POST" action="{{ url_for('assign_ofir_pair_route', pid=p.id) }}" class="ofir-assign-form">
+          <select name="group_number" onchange="this.form.submit()" draggable="false" title="שיבוץ לבית">
+            <option value=""{% if not p.group_number %} selected{% endif %}>ללא שיבוץ</option>
+            {% for g in range(1, groups_count + 1) %}
+              <option value="{{ g }}"{% if p.group_number == g %} selected{% endif %}>בית {{ g }}</option>
+            {% endfor %}
+          </select>
+        </form>
         <form method="POST" action="{{ url_for('delete_ofir_pair_route', pid=p.id) }}"
-              onsubmit="return confirm('למחוק את {{ p.name }}?');">
-          <button type="submit" class="remove-pair" draggable="false" title="מחיקה">✕</button>
+              onsubmit="return confirm('למחוק לגמרי את {{ p.name }} מרשימת הזוגות? (לא רק מהבית - מכל הטורניר. כדי רק להזיז לבית אחר/להחזיר לרשימה יש להשתמש בתפריט השיבוץ.)');">
+          <button type="submit" class="remove-pair" draggable="false" title="מחיקה סופית מהרשימה">✕</button>
         </form>
       {% endif %}
     </div>
@@ -130,6 +138,8 @@
             if (emptyMsg) emptyMsg.hidden = true;
             zone.appendChild(card);
             updateCounts();
+            var select = card.querySelector('.ofir-assign-form select');
+            if (select) select.value = zone.dataset.group || '';
             fetch('/ofir-tournament/pairs/' + pairId + '/assign', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
