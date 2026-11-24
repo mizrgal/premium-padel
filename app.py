@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.21.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -117,7 +117,8 @@ OFIR_TOURNAMENT_LEVEL = "רמה 4"
 OFIR_TOURNAMENT_PAIRS = 24
 OFIR_TOURNAMENT_PRIZES = [
     {"rank": "מקום ראשון", "icon": "🏆", "name": "גביע + זוג מחבטים", "css": "gold"},
-    {"rank": "מקום שני", "icon": "🥈", "name": "פרס מפנק", "css": "silver"},
+    {"rank": "מקום שני", "icon": "🥈", "name": "פרס בחסות HEAD", "css": "silver"},
+    {"rank": "מקום שלישי", "icon": "🥉", "name": "פרס שווה במיוחד", "css": "bronze"},
 ]
 OFIR_TOURNAMENT_PERKS = [
     {"icon": "💆", "title": "עמדת מסאז'", "desc": "שחרור והתאוששות במהלך הטורניר"},
@@ -164,6 +165,18 @@ def delete_ofir_pair(pid):
 
 def assign_ofir_pair(pid, group_number):
     db_patch("padel_ofir_pairs", f"id=eq.{pid}", {"group_number": group_number})
+
+
+def list_ofir_videos():
+    return db_get("/rest/v1/padel_ofir_videos?select=*&order=created_at.asc")
+
+
+def add_ofir_video(video_url):
+    return db_insert("padel_ofir_videos", {"video_url": video_url})
+
+
+def delete_ofir_video(vid):
+    _supa("DELETE", f"/rest/v1/padel_ofir_videos?id=eq.{vid}")
 
 
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
@@ -261,6 +274,38 @@ def upload_avatar(user_id, file_storage):
 
 def upload_ofir_photo(pair_id, player_num, file_storage):
     return _upload_image_to_bucket(f"ofir/{pair_id}/{player_num}-{int(time.time())}", file_storage)
+
+
+OFIR_VIDEO_MAX_BYTES = 80 * 1024 * 1024
+OFIR_VIDEO_EXT_BY_MIME = {"video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm"}
+
+
+def upload_ofir_video(file_storage):
+    """Uploads a video straight to the same Supabase Storage bucket used for avatars/photos,
+    under its own ofir/videos/ prefix. Returns (public_url, None) or (None, error_message)."""
+    ext = OFIR_VIDEO_EXT_BY_MIME.get(file_storage.mimetype)
+    if not ext:
+        return None, "סוג קובץ לא נתמך (יש להעלות mp4, mov או webm)"
+    data = file_storage.read()
+    if not data:
+        return None, "נא לבחור קובץ וידאו"
+    if len(data) > OFIR_VIDEO_MAX_BYTES:
+        return None, "הקובץ גדול מדי (מקסימום 80MB)"
+    path = f"ofir/videos/{int(time.time())}-{random.randint(1000, 9999)}.{ext}"
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{path}",
+        data=data, method="POST",
+        headers={
+            "apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
+            "Content-Type": file_storage.mimetype, "x-upsert": "true",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, context=_ssl_ctx):
+            pass
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP {e.code} POST video upload: {e.read().decode()}")
+    return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{path}", None
 
 
 # ─── Data access ────────────────────────────────────────────────────────────
@@ -2385,7 +2430,31 @@ def ofir_tournament():
         pairs_count=OFIR_TOURNAMENT_PAIRS,
         prizes=OFIR_TOURNAMENT_PRIZES,
         perks=OFIR_TOURNAMENT_PERKS,
+        videos=list_ofir_videos(),
     )
+
+
+@app.route("/ofir-tournament/videos", methods=["POST"])
+@admin_required
+def add_ofir_video_route():
+    file = request.files.get("video")
+    if not file or not file.filename:
+        flash("נא לבחור קובץ וידאו", "error")
+        return redirect(url_for("ofir_tournament"))
+    url, error = upload_ofir_video(file)
+    if error:
+        flash(error, "error")
+        return redirect(url_for("ofir_tournament"))
+    add_ofir_video(url)
+    flash("הסרטון נוסף", "success")
+    return redirect(url_for("ofir_tournament"))
+
+
+@app.route("/ofir-tournament/videos/<vid>/delete", methods=["POST"])
+@admin_required
+def delete_ofir_video_route(vid):
+    delete_ofir_video(vid)
+    return redirect(url_for("ofir_tournament"))
 
 
 @app.route("/ofir-tournament/entry")

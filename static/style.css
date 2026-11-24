@@ -322,6 +322,7 @@ tr:last-child td { border-bottom: none; }
 .prize-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px; text-align: center; }
 .prize-card.gold { border-color: var(--medal-gold); background: linear-gradient(135deg, #fffaf0, #fff); }
 .prize-card.silver { border-color: var(--medal-silver); background: linear-gradient(135deg, #f7f7f8, #fff); }
+.prize-card.bronze { border-color: var(--medal-bronze); background: linear-gradient(135deg, #fdf3ea, #fff); }
 .prize-card .prize-icon { font-size: 30px; margin-bottom: 8px; }
 .prize-card .prize-rank { font-size: 12px; font-weight: 700; color: #888; margin-bottom: 4px; }
 .prize-card .prize-name { font-size: 15px; font-weight: 700; color: var(--navy); }
@@ -331,6 +332,23 @@ tr:last-child td { border-bottom: none; }
 .perk-card .perk-icon { font-size: 24px; margin-bottom: 8px; }
 .perk-card .perk-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
 .perk-card .perk-desc { font-size: 12px; color: #888; line-height: 1.4; }
+
+.ofir-video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.ofir-video-tile { position: relative; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+.ofir-video-tile video { display: block; width: 100%; max-height: 360px; background: #000; }
+.ofir-video-tile .ofir-video-delete {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  min-height: 0;
+  padding: 4px 8px;
+}
+.ofir-video-tile .ofir-video-delete:hover { background: rgba(192,57,43,.85); }
 
 .raffle-card {
   background: linear-gradient(135deg, var(--navy), var(--navy-light));

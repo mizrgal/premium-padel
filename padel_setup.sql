@@ -200,6 +200,14 @@ alter table padel_ofir_pairs add column if not exists player2_name text;
 alter table padel_ofir_pairs add column if not exists player1_photo_url text;
 alter table padel_ofir_pairs add column if not exists player2_photo_url text;
 
+-- hype-page video clips of אופיר, uploaded straight to Supabase Storage (same bucket as
+-- avatars/photos, under ofir/videos/) - see /ofir-tournament.
+create table if not exists padel_ofir_videos (
+  id uuid primary key default gen_random_uuid(),
+  video_url text not null,
+  created_at timestamptz default now()
+);
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then
