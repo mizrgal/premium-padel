@@ -345,6 +345,62 @@ tr:last-child td { border-bottom: none; }
 .raffle-card .raffle-title { color: var(--gold); font-weight: 700; font-size: 14px; margin-bottom: 4px; }
 .raffle-card .raffle-desc { font-size: 13px; color: #e6e6f0; }
 
+.ofir-add-pair-form { display: flex; gap: 8px; max-width: 420px; margin-bottom: 10px; }
+.ofir-add-pair-form input { flex: 1; margin-bottom: 0; }
+.ofir-add-pair-form button { white-space: nowrap; }
+
+.ofir-entry-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 56px;
+  padding: 14px;
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  transition: border-color .15s, background .15s;
+}
+.ofir-entry-pool.drag-over { border-color: var(--gold); background: #fffdf4; }
+
+.ofir-pair-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+.ofir-pair-card[draggable="true"] { cursor: grab; }
+.ofir-pair-card.dragging { opacity: .4; }
+.ofir-pair-card .remove-pair {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 14px;
+  min-height: 0;
+  padding: 0;
+  line-height: 1;
+}
+.ofir-pair-card .remove-pair:hover { color: var(--red); background: none; }
+
+.ofir-groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.ofir-group-box { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; }
+.ofir-group-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.ofir-group-title .count { color: #888; font-weight: 600; font-size: 12px; }
+.ofir-group-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 10px;
+  transition: background .15s;
+}
+.ofir-group-cards.drag-over { background: #fffdf4; outline: 2px dashed var(--gold); outline-offset: 4px; }
+
 .vote-form { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
 .vote-option {
   display: flex;

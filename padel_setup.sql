@@ -184,6 +184,16 @@ create table if not exists padel_americano_predict_meta (
 );
 insert into padel_americano_predict_meta (id, revealed) values (1, false) on conflict (id) do nothing;
 
+-- one-off entry list + group (house) seeding board for אופיר עמרם's enlistment tournament
+-- (24 pairs, 6 houses - see /ofir-tournament). Admin manually types in each pair's name and
+-- drags it into a house; group_number null means it's still in the unassigned pool.
+create table if not exists padel_ofir_pairs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  group_number int check (group_number is null or group_number between 1 and 6),
+  created_at timestamptz default now()
+);
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'winner_pair_fk') then

@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.19.4"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.20.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -126,6 +126,23 @@ OFIR_TOURNAMENT_PERKS = [
     {"icon": "🍽️", "title": "כיבוד ושתייה", "desc": "כיבוד עשיר ושתייה קלה"},
     {"icon": "🎵", "title": "מוזיקה ואווירה", "desc": "מוזיקה ואווירה טובה"},
 ]
+OFIR_TOURNAMENT_GROUPS = 6  # 24 pairs / 6 houses = 4 pairs each
+
+
+def list_ofir_pairs():
+    return db_get("/rest/v1/padel_ofir_pairs?select=*&order=created_at.asc")
+
+
+def add_ofir_pair(name):
+    return db_insert("padel_ofir_pairs", {"name": name})
+
+
+def delete_ofir_pair(pid):
+    _supa("DELETE", f"/rest/v1/padel_ofir_pairs?id=eq.{pid}")
+
+
+def assign_ofir_pair(pid, group_number):
+    db_patch("padel_ofir_pairs", f"id=eq.{pid}", {"group_number": group_number})
 
 
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
@@ -2323,10 +2340,16 @@ def close_king_cross_route():
 
 @app.route("/ofir-tournament")
 def ofir_tournament():
-    """No login required - a one-off hype/info page for אופיר עמרם's enlistment tournament
-    (03.12.2026, פאדל גולף קיסריה), same open-access pattern as the Americano/king-cross
-    pages. Pure display + countdown for now - pairs sign up through a regular tournament once
-    one is created for it."""
+    """No login required to view - a one-off hype/info page for אופיר עמרם's enlistment
+    tournament (03.12.2026, פאדל גולף קיסריה), same open-access pattern as the
+    Americano/king-cross pages. The 24-pair entry list and group (house) seeding board are
+    admin-managed (see add/delete/assign routes below) and visible to everyone."""
+    pairs = list_ofir_pairs()
+    unassigned_pairs = [p for p in pairs if p["group_number"] is None]
+    pairs_by_group = {}
+    for p in pairs:
+        if p["group_number"] is not None:
+            pairs_by_group.setdefault(p["group_number"], []).append(p)
     return render_template(
         "ofir_tournament.html",
         title=OFIR_TOURNAMENT_TITLE,
@@ -2338,7 +2361,51 @@ def ofir_tournament():
         pairs_count=OFIR_TOURNAMENT_PAIRS,
         prizes=OFIR_TOURNAMENT_PRIZES,
         perks=OFIR_TOURNAMENT_PERKS,
+        groups_count=OFIR_TOURNAMENT_GROUPS,
+        group_size=OFIR_TOURNAMENT_PAIRS // OFIR_TOURNAMENT_GROUPS,
+        pairs=pairs,
+        unassigned_pairs=unassigned_pairs,
+        pairs_by_group=pairs_by_group,
     )
+
+
+@app.route("/ofir-tournament/pairs", methods=["POST"])
+@admin_required
+def add_ofir_pair_route():
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("יש להזין שם לזוג", "error")
+        return redirect(url_for("ofir_tournament"))
+    if len(list_ofir_pairs()) >= OFIR_TOURNAMENT_PAIRS:
+        flash(f"כבר יש {OFIR_TOURNAMENT_PAIRS} זוגות ברשימה", "error")
+        return redirect(url_for("ofir_tournament"))
+    add_ofir_pair(name)
+    return redirect(url_for("ofir_tournament"))
+
+
+@app.route("/ofir-tournament/pairs/<pid>/delete", methods=["POST"])
+@admin_required
+def delete_ofir_pair_route(pid):
+    delete_ofir_pair(pid)
+    return redirect(url_for("ofir_tournament"))
+
+
+@app.route("/ofir-tournament/pairs/<pid>/assign", methods=["POST"])
+@admin_required
+def assign_ofir_pair_route(pid):
+    """Called over fetch() by the drag-and-drop board when a pair card is dropped into a
+    house (group_number 1..6) or back into the unassigned pool (empty group_number)."""
+    raw = request.form.get("group_number", "").strip()
+    group_number = None
+    if raw:
+        try:
+            group_number = int(raw)
+        except ValueError:
+            return jsonify({"ok": False, "error": "invalid group_number"}), 400
+        if not (1 <= group_number <= OFIR_TOURNAMENT_GROUPS):
+            return jsonify({"ok": False, "error": "group_number out of range"}), 400
+    assign_ofir_pair(pid, group_number)
+    return jsonify({"ok": True})
 
 
 @app.route("/americano")
