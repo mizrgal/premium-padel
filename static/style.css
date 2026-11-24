@@ -306,7 +306,7 @@ tr:last-child td { border-bottom: none; }
   margin-top: 16px;
 }
 
-.countdown { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 4px; }
+.countdown { display: flex; flex-direction: row-reverse; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 4px; }
 .countdown-unit {
   background: rgba(255,255,255,.07);
   border: 1px solid rgba(244,185,66,.35);
