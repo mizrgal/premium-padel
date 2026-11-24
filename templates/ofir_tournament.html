@@ -1,0 +1,90 @@
+{% extends "base_app.html" %}
+{% block title %}{{ title }} – Premium Padel{% endblock %}
+{% block content %}
+  <div class="ofir-hero">
+    <img src="{{ url_for('static', filename='ofir-amram.jpg') }}" alt="אופיר עמרם" class="ofir-photo">
+    <h1>🎖️ {{ title }}</h1>
+    <p class="ofir-subtitle">מתגייס לצה"ל — ומזמין את כולם לחגוג איתו על המגרש!</p>
+
+    <div class="ofir-meta">
+      <span class="meta-item">📅 {{ date_label }}</span>
+      <span class="meta-item">⏰ {{ time_label }}</span>
+      <span class="meta-item">📍 {{ location }}</span>
+      <span class="meta-item">🎯 {{ level }}</span>
+      <span class="meta-item">👥 {{ pairs_count }} זוגות</span>
+    </div>
+
+    <div id="ofir-countdown" class="countdown">
+      <div class="countdown-unit"><div class="num" id="cd-days">–</div><div class="unit-label">ימים</div></div>
+      <div class="countdown-unit"><div class="num" id="cd-hours">–</div><div class="unit-label">שעות</div></div>
+      <div class="countdown-unit"><div class="num" id="cd-mins">–</div><div class="unit-label">דקות</div></div>
+      <div class="countdown-unit"><div class="num" id="cd-secs">–</div><div class="unit-label">שניות</div></div>
+    </div>
+    <p id="ofir-countdown-done" class="countdown-done" hidden>🎾 הטורניר התחיל — בהצלחה לכולם!</p>
+
+    <p class="ofir-sponsor">הטורניר בחסות OA</p>
+  </div>
+
+  <h2>🏆 פרסים לזוכים</h2>
+  <div class="prize-grid">
+    {% for p in prizes %}
+      <div class="prize-card {{ p.css }}">
+        <div class="prize-icon">{{ p.icon }}</div>
+        <div class="prize-rank">{{ p.rank }}</div>
+        <div class="prize-name">{{ p.name }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="raffle-card">
+    <div class="raffle-icon">🎁</div>
+    <div class="raffle-title">הגרלה מיוחדת!</div>
+    <div class="raffle-desc">צמיד ניטורי וכיסוי למחבט</div>
+  </div>
+
+  <h2>✨ מה עוד יהיה בטורניר</h2>
+  <div class="perk-grid">
+    {% for perk in perks %}
+      <div class="perk-card">
+        <div class="perk-icon">{{ perk.icon }}</div>
+        <div class="perk-title">{{ perk.title }}</div>
+        <div class="perk-desc">{{ perk.desc }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card" style="max-width:520px;">
+    <p class="hint" style="margin-bottom:0;">ההרשמה לזוגות תיפתח בהמשך — עקבו כאן לעדכונים.</p>
+  </div>
+
+  <script>
+    (function () {
+      var target = new Date("{{ datetime_iso }}").getTime();
+      var wrap = document.getElementById('ofir-countdown');
+      var done = document.getElementById('ofir-countdown-done');
+      var daysEl = document.getElementById('cd-days');
+      var hoursEl = document.getElementById('cd-hours');
+      var minsEl = document.getElementById('cd-mins');
+      var secsEl = document.getElementById('cd-secs');
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function tick() {
+        var diff = target - Date.now();
+        if (diff <= 0) {
+          wrap.hidden = true;
+          done.hidden = false;
+          clearInterval(timer);
+          return;
+        }
+        daysEl.textContent = Math.floor(diff / 86400000);
+        hoursEl.textContent = pad(Math.floor(diff % 86400000 / 3600000));
+        minsEl.textContent = pad(Math.floor(diff % 3600000 / 60000));
+        secsEl.textContent = pad(Math.floor(diff % 60000 / 1000));
+      }
+
+      tick();
+      var timer = setInterval(tick, 1000);
+    })();
+  </script>
+{% endblock %}

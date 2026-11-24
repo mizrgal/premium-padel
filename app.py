@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.18.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.19.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -102,6 +102,30 @@ AMERICANO_TIEBREAK = ["עידן כץ", "טבקמן"]
 
 def americano_tiebreak_rank(name):
     return AMERICANO_TIEBREAK.index(name) if name in AMERICANO_TIEBREAK else len(AMERICANO_TIEBREAK)
+
+
+# one-off hype/info page for אופיר עמרם's enlistment-tribute tournament - static content, no
+# DB row (the real sign-up tournament, once open, will be a normal padel_tournaments row
+# created the usual way). ISO datetime carries the +02:00 Israel-standard-time offset since
+# early December is after DST ends, so the countdown lands on the right moment everywhere.
+OFIR_TOURNAMENT_TITLE = "טורניר פאדל לכבוד הגיוס של אופיר עמרם"
+OFIR_TOURNAMENT_DATE_LABEL = "חמישי 03.12.2026"
+OFIR_TOURNAMENT_TIME_LABEL = "19:00"
+OFIR_TOURNAMENT_DATETIME_ISO = "2026-12-03T19:00:00+02:00"
+OFIR_TOURNAMENT_LOCATION = "פאדל גולף קיסריה"
+OFIR_TOURNAMENT_LEVEL = "רמה 4"
+OFIR_TOURNAMENT_PAIRS = 24
+OFIR_TOURNAMENT_PRIZES = [
+    {"rank": "מקום ראשון", "icon": "🏆", "name": "גביע + זוג מחבטים", "css": "gold"},
+    {"rank": "מקום שני", "icon": "🥈", "name": "פרס מפנק", "css": "silver"},
+]
+OFIR_TOURNAMENT_PERKS = [
+    {"icon": "💆", "title": "עמדת מסאז'", "desc": "שחרור והתאוששות במהלך הטורניר"},
+    {"icon": "📡", "title": "עמדת סנסור למחבט", "desc": "ניתוח ביצועים וסטטיסטיקות משחק"},
+    {"icon": "⌚", "title": "עמדת צמידים דיגיטלים", "desc": "רישום, מעקב הוצאות ודיווח בזמן אמת"},
+    {"icon": "🍽️", "title": "כיבוד ושתייה", "desc": "כיבוד עשיר ושתייה קלה"},
+    {"icon": "🎵", "title": "מוזיקה ואווירה", "desc": "מוזיקה ואווירה טובה"},
+]
 
 
 AMERICANO_RIGHT = ["אמרי", "עידן כץ", "רביב", "טבקמן", "ניקו", "אופיר עמרם", "יובל צחובר", "יוחאי זיו", "יובל דיאז", "משה וזאן"]
@@ -2295,6 +2319,26 @@ def close_king_cross_route():
     close_king_cross()
     flash("ההצבעה נסגרה והתוצאות פורסמו", "success")
     return redirect(url_for("king_cross_vote"))
+
+
+@app.route("/ofir-tournament")
+def ofir_tournament():
+    """No login required - a one-off hype/info page for אופיר עמרם's enlistment tournament
+    (03.12.2026, פאדל גולף קיסריה), same open-access pattern as the Americano/king-cross
+    pages. Pure display + countdown for now - pairs sign up through a regular tournament once
+    one is created for it."""
+    return render_template(
+        "ofir_tournament.html",
+        title=OFIR_TOURNAMENT_TITLE,
+        date_label=OFIR_TOURNAMENT_DATE_LABEL,
+        time_label=OFIR_TOURNAMENT_TIME_LABEL,
+        datetime_iso=OFIR_TOURNAMENT_DATETIME_ISO,
+        location=OFIR_TOURNAMENT_LOCATION,
+        level=OFIR_TOURNAMENT_LEVEL,
+        pairs_count=OFIR_TOURNAMENT_PAIRS,
+        prizes=OFIR_TOURNAMENT_PRIZES,
+        perks=OFIR_TOURNAMENT_PERKS,
+    )
 
 
 @app.route("/americano")
