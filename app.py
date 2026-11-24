@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.5"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.6"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -133,6 +133,22 @@ OFIR_TOURNAMENT_GROUPS = 6  # 24 pairs / 6 houses = 4 pairs each
 
 def list_ofir_pairs():
     return db_get("/rest/v1/padel_ofir_pairs?select=*&order=created_at.asc")
+
+
+# Built-in photos for players who have none uploaded, matched on the first word of the
+# player's name. An uploaded photo (📷 button) always wins over these.
+OFIR_STATIC_PLAYER_PHOTOS = {
+    "מור": "ofir-player-mor.jpg",
+    "בר": "ofir-player-bar.jpg",
+    "mor": "ofir-player-mor.jpg",
+    "bar": "ofir-player-bar.jpg",
+}
+
+
+def ofir_static_player_photo(name):
+    first = (name or "").strip().split(" ")[0].lower() if name else ""
+    filename = OFIR_STATIC_PLAYER_PHOTOS.get(first)
+    return url_for("static", filename=filename) if filename else None
 
 
 def _ofir_pair_display_name(player1_name, player2_name):
@@ -2475,6 +2491,13 @@ def ofir_tournament_entry():
     אופיר עמרם's tournament. Admin manages it (add/delete/drag); everyone else sees it
     read-only."""
     pairs = list_ofir_pairs()
+    for p in pairs:
+        for num in (1, 2):
+            key = f"player{num}_photo_url"
+            if not p.get(key):
+                fallback = ofir_static_player_photo(p.get(f"player{num}_name"))
+                if fallback:
+                    p[key] = fallback
     unassigned_pairs = [p for p in pairs if p["group_number"] is None]
     pairs_by_group = {}
     for p in pairs:
