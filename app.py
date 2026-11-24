@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.2"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.3"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -277,13 +277,15 @@ def upload_ofir_photo(pair_id, player_num, file_storage):
     return _upload_image_to_bucket(f"ofir/{pair_id}/{player_num}-{int(time.time())}", file_storage)
 
 
+OFIR_VIDEO_BUCKET = "ofir-videos"  # separate from AVATAR_BUCKET, which only allows images
 OFIR_VIDEO_MAX_BYTES = 80 * 1024 * 1024
 OFIR_VIDEO_EXT_BY_MIME = {"video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm"}
 
 
 def upload_ofir_video(file_storage):
-    """Uploads a video straight to the same Supabase Storage bucket used for avatars/photos,
-    under its own ofir/videos/ prefix. Returns (public_url, None) or (None, error_message)."""
+    """Uploads a video straight to its own Supabase Storage bucket (OFIR_VIDEO_BUCKET - the
+    avatars bucket's mime-type allowlist is images-only). Returns (public_url, None) or
+    (None, error_message)."""
     ext = OFIR_VIDEO_EXT_BY_MIME.get(file_storage.mimetype)
     if not ext:
         return None, "סוג קובץ לא נתמך (יש להעלות mp4, mov או webm)"
@@ -292,9 +294,9 @@ def upload_ofir_video(file_storage):
         return None, "נא לבחור קובץ וידאו"
     if len(data) > OFIR_VIDEO_MAX_BYTES:
         return None, "הקובץ גדול מדי (מקסימום 80MB)"
-    path = f"ofir/videos/{int(time.time())}-{random.randint(1000, 9999)}.{ext}"
+    path = f"{int(time.time())}-{random.randint(1000, 9999)}.{ext}"
     req = urllib.request.Request(
-        f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{path}",
+        f"{SUPABASE_URL}/storage/v1/object/{OFIR_VIDEO_BUCKET}/{path}",
         data=data, method="POST",
         headers={
             "apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
@@ -308,7 +310,7 @@ def upload_ofir_video(file_storage):
         # surfaced to the admin (not raised as a 500) since this is usually the Storage
         # bucket's own mime-type/size policy rejecting the file, not a real server error
         return None, f"ההעלאה נכשלה בסופהבייס (HTTP {e.code}): {e.read().decode()[:300]}"
-    return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{path}", None
+    return f"{SUPABASE_URL}/storage/v1/object/public/{OFIR_VIDEO_BUCKET}/{path}", None
 
 
 # ─── Data access ────────────────────────────────────────────────────────────
