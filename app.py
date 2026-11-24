@@ -24,9 +24,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # trust Render's reverse proxy for scheme/host so url_for(_external=True) yields https://
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
+app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
+# (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -304,7 +305,9 @@ def upload_ofir_video(file_storage):
         with urllib.request.urlopen(req, context=_ssl_ctx):
             pass
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"HTTP {e.code} POST video upload: {e.read().decode()}")
+        # surfaced to the admin (not raised as a 500) since this is usually the Storage
+        # bucket's own mime-type/size policy rejecting the file, not a real server error
+        return None, f"ההעלאה נכשלה בסופהבייס (HTTP {e.code}): {e.read().decode()[:300]}"
     return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{path}", None
 
 
