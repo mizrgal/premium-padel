@@ -6,9 +6,40 @@
   <h1>🏟️ כניסה לטורניר</h1>
   <p class="muted" style="margin-top:-8px;">{{ title }}</p>
 
+  {% macro ofir_player_row(p, player_num) %}
+    {% set pname = p.player1_name if player_num == 1 else p.player2_name %}
+    {% set photo = p.player1_photo_url if player_num == 1 else p.player2_photo_url %}
+    {% if pname %}
+      <div class="ofir-player-row">
+        {% if photo %}
+          <img src="{{ photo }}" alt="" class="ofir-player-photo">
+        {% else %}
+          <span class="ofir-player-photo ofir-player-photo-empty">🙂</span>
+        {% endif %}
+        <span class="ofir-player-name">{{ pname }}</span>
+        {% if session.get('is_admin') %}
+          <form method="POST" action="{{ url_for('upload_ofir_pair_photo_route', pid=p.id) }}"
+                enctype="multipart/form-data" class="ofir-player-photo-form">
+            <input type="hidden" name="player" value="{{ player_num }}">
+            <input type="file" name="photo" accept="image/*" id="ofir-photo-{{ p.id }}-{{ player_num }}"
+                   onchange="this.form.submit()" hidden>
+            <label for="ofir-photo-{{ p.id }}-{{ player_num }}" class="ofir-photo-btn" draggable="false" title="העלאת תמונה">📷</label>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endmacro %}
+
   {% macro ofir_pair_card(p) %}
     <div class="ofir-pair-card" data-pair-id="{{ p.id }}"{% if session.get('is_admin') %} draggable="true"{% endif %}>
-      <span>{{ p.name }}</span>
+      <div class="ofir-pair-players">
+        {% if p.player1_name %}
+          {{ ofir_player_row(p, 1) }}
+          {{ ofir_player_row(p, 2) }}
+        {% else %}
+          <span class="ofir-player-name">{{ p.name }}</span>
+        {% endif %}
+      </div>
       {% if session.get('is_admin') %}
         <form method="POST" action="{{ url_for('delete_ofir_pair_route', pid=p.id) }}"
               onsubmit="return confirm('למחוק את {{ p.name }}?');">
@@ -20,11 +51,13 @@
 
   {% if session.get('is_admin') %}
     <form method="POST" action="{{ url_for('add_ofir_pair_route') }}" class="ofir-add-pair-form">
-      <input type="text" name="name" placeholder="שם הזוג (למשל: אופיר / דני)" required
+      <input type="text" name="player1_name" placeholder="שם שחקן/ית 1" required
+             {% if pairs|length >= pairs_count %}disabled{% endif %}>
+      <input type="text" name="player2_name" placeholder="שם שחקן/ית 2 (אופציונלי)"
              {% if pairs|length >= pairs_count %}disabled{% endif %}>
       <button type="submit" class="btn-gold">הוספת זוג</button>
     </form>
-    <p class="hint">גוררים זוג מהרשימה לבית הרצוי. {{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
+    <p class="hint">גוררים זוג מהרשימה לבית הרצוי, ומעלים תמונה לכל שחקן/ית עם 📷. {{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
   {% else %}
     <p class="hint">{{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
   {% endif %}

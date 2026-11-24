@@ -26,7 +26,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4MB request cap (avatar uploads)
 
-APP_VERSION = "1.20.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.21.0"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -133,8 +133,29 @@ def list_ofir_pairs():
     return db_get("/rest/v1/padel_ofir_pairs?select=*&order=created_at.asc")
 
 
-def add_ofir_pair(name):
-    return db_insert("padel_ofir_pairs", {"name": name})
+def _ofir_pair_display_name(player1_name, player2_name):
+    return player1_name if not player2_name else f"{player1_name} / {player2_name}"
+
+
+def add_ofir_pair(player1_name, player2_name=None):
+    return db_insert("padel_ofir_pairs", {
+        "name": _ofir_pair_display_name(player1_name, player2_name),
+        "player1_name": player1_name,
+        "player2_name": player2_name,
+    })
+
+
+def update_ofir_pair_names(pid, player1_name, player2_name=None):
+    db_patch("padel_ofir_pairs", f"id=eq.{pid}", {
+        "name": _ofir_pair_display_name(player1_name, player2_name),
+        "player1_name": player1_name,
+        "player2_name": player2_name,
+    })
+
+
+def set_ofir_pair_photo(pid, player_num, photo_url):
+    column = "player1_photo_url" if player_num == 1 else "player2_photo_url"
+    db_patch("padel_ofir_pairs", f"id=eq.{pid}", {column: photo_url})
 
 
 def delete_ofir_pair(pid):
@@ -205,9 +226,10 @@ def db_patch(table, filter_qs, updates):
     return _supa("PATCH", f"/rest/v1/{table}?{filter_qs}", updates)
 
 
-def upload_avatar(user_id, file_storage):
-    """Uploads an avatar image straight to Supabase Storage (raw bytes, not JSON - bypasses
-    _supa). Returns (public_url, None) on success or (None, error_message) on failure."""
+def _upload_image_to_bucket(path, file_storage):
+    """Uploads an image straight to Supabase Storage (raw bytes, not JSON - bypasses _supa),
+    at `path` inside AVATAR_BUCKET. Returns (public_url, None) on success or (None,
+    error_message) on failure - shared by user avatars and אופיר-tournament participant photos."""
     ext = AVATAR_EXT_BY_MIME.get(file_storage.mimetype)
     if not ext:
         return None, "סוג קובץ לא נתמך (יש להעלות JPG, PNG, WebP או GIF)"
@@ -216,9 +238,9 @@ def upload_avatar(user_id, file_storage):
         return None, "נא לבחור קובץ תמונה"
     if len(data) > AVATAR_MAX_BYTES:
         return None, "הקובץ גדול מדי (מקסימום 3MB)"
-    path = f"{user_id}/{int(time.time())}.{ext}"
+    full_path = f"{path}.{ext}"
     req = urllib.request.Request(
-        f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{path}",
+        f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{full_path}",
         data=data, method="POST",
         headers={
             "apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
@@ -229,8 +251,16 @@ def upload_avatar(user_id, file_storage):
         with urllib.request.urlopen(req, context=_ssl_ctx):
             pass
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"HTTP {e.code} POST avatar upload: {e.read().decode()}")
-    return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{path}", None
+        raise RuntimeError(f"HTTP {e.code} POST image upload: {e.read().decode()}")
+    return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{full_path}", None
+
+
+def upload_avatar(user_id, file_storage):
+    return _upload_image_to_bucket(f"{user_id}/{int(time.time())}", file_storage)
+
+
+def upload_ofir_photo(pair_id, player_num, file_storage):
+    return _upload_image_to_bucket(f"ofir/{pair_id}/{player_num}-{int(time.time())}", file_storage)
 
 
 # ─── Data access ────────────────────────────────────────────────────────────
@@ -2384,14 +2414,15 @@ def ofir_tournament_entry():
 @app.route("/ofir-tournament/pairs", methods=["POST"])
 @admin_required
 def add_ofir_pair_route():
-    name = request.form.get("name", "").strip()
-    if not name:
-        flash("יש להזין שם לזוג", "error")
+    player1_name = request.form.get("player1_name", "").strip()
+    player2_name = request.form.get("player2_name", "").strip() or None
+    if not player1_name:
+        flash("יש להזין לפחות שם אחד לזוג", "error")
         return redirect(url_for("ofir_tournament_entry"))
     if len(list_ofir_pairs()) >= OFIR_TOURNAMENT_PAIRS:
         flash(f"כבר יש {OFIR_TOURNAMENT_PAIRS} זוגות ברשימה", "error")
         return redirect(url_for("ofir_tournament_entry"))
-    add_ofir_pair(name)
+    add_ofir_pair(player1_name, player2_name)
     return redirect(url_for("ofir_tournament_entry"))
 
 
@@ -2399,6 +2430,37 @@ def add_ofir_pair_route():
 @admin_required
 def delete_ofir_pair_route(pid):
     delete_ofir_pair(pid)
+    return redirect(url_for("ofir_tournament_entry"))
+
+
+@app.route("/ofir-tournament/pairs/<pid>/edit", methods=["POST"])
+@admin_required
+def edit_ofir_pair_route(pid):
+    player1_name = request.form.get("player1_name", "").strip()
+    player2_name = request.form.get("player2_name", "").strip() or None
+    if not player1_name:
+        flash("יש להזין לפחות שם אחד לזוג", "error")
+        return redirect(url_for("ofir_tournament_entry"))
+    update_ofir_pair_names(pid, player1_name, player2_name)
+    return redirect(url_for("ofir_tournament_entry"))
+
+
+@app.route("/ofir-tournament/pairs/<pid>/photo", methods=["POST"])
+@admin_required
+def upload_ofir_pair_photo_route(pid):
+    player_num = request.form.get("player", "")
+    if player_num not in ("1", "2"):
+        flash("בחירת שחקן לא תקינה", "error")
+        return redirect(url_for("ofir_tournament_entry"))
+    file = request.files.get("photo")
+    if not file or not file.filename:
+        flash("נא לבחור קובץ תמונה", "error")
+        return redirect(url_for("ofir_tournament_entry"))
+    url, error = upload_ofir_photo(pid, player_num, file)
+    if error:
+        flash(error, "error")
+        return redirect(url_for("ofir_tournament_entry"))
+    set_ofir_pair_photo(pid, int(player_num), url)
     return redirect(url_for("ofir_tournament_entry"))
 
 
