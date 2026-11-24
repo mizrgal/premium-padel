@@ -51,7 +51,7 @@
         <div class="perk-desc">{{ perk.desc }}</div>
       </div>
     {% endfor %}
-    <a href="{{ url_for('ofir_tournament_videos') }}" class="perk-card perk-card-link">
+    <a href="{{ url_for('ofir_tournament_videos') }}" class="perk-card perk-card-link has-photo" style="--tile-photo: url('{{ url_for('static', filename='ofir-videos.jpg') }}');">
       <div class="perk-icon">🎥</div>
       <div class="perk-title">סרטונים של אופיר</div>
       <div class="perk-desc">לחצו לצפייה</div>

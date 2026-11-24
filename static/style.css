@@ -337,12 +337,25 @@ tr:last-child td { border-bottom: none; }
   text-decoration: none;
   background: linear-gradient(135deg, var(--navy) 0%, #0c0c18 100%);
   border: 1.5px solid var(--gold);
+  position: relative;
+  overflow: hidden;
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   box-shadow: 0 4px 18px rgba(244,185,66,.3);
   transition: box-shadow .15s, transform .15s;
+}
+.perk-card-link.has-photo {
+  background:
+    linear-gradient(180deg, rgba(12,12,24,.15) 0%, rgba(12,12,24,.55) 55%, rgba(12,12,24,.92) 100%),
+    var(--tile-photo) center 25% / cover no-repeat;
 }
 .perk-card-link .perk-icon { font-size: 30px; }
 .perk-card-link .perk-title { color: var(--gold); font-size: 15px; }
 .perk-card-link .perk-desc { color: #d8d8e4; }
+.perk-card-link.has-photo .perk-icon { display: none; }
+.perk-card-link.has-photo .perk-title, .perk-card-link.has-photo .perk-desc { text-shadow: 0 1px 4px rgba(0,0,0,.7); }
 .perk-card-link:hover { box-shadow: 0 6px 22px rgba(244,185,66,.5); transform: translateY(-2px); }
 
 .ofir-video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 16px; }
