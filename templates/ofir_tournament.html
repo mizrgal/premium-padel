@@ -51,37 +51,17 @@
         <div class="perk-desc">{{ perk.desc }}</div>
       </div>
     {% endfor %}
+    <a href="{{ url_for('ofir_tournament_videos') }}" class="perk-card perk-card-link">
+      <div class="perk-icon">🎥</div>
+      <div class="perk-title">סרטונים של אופיר</div>
+      <div class="perk-desc">לחצו לצפייה</div>
+    </a>
   </div>
 
   <div class="card" style="max-width:420px; text-align:center;">
     <p style="margin-bottom:12px;">{{ pairs_count }} זוגות, 6 בתים — עוקבים אחרי מי כבר נרשם ומשובץ.</p>
     <a href="{{ url_for('ofir_tournament_entry') }}" class="btn btn-gold btn-block">🏟️ כניסה לטורניר</a>
   </div>
-
-  <h2>🎥 סרטונים של אופיר</h2>
-  {% if videos %}
-    <div class="ofir-video-grid">
-      {% for v in videos %}
-        <div class="ofir-video-tile">
-          <video controls preload="metadata" src="{{ v.video_url }}"></video>
-          {% if session.get('is_admin') %}
-            <form method="POST" action="{{ url_for('delete_ofir_video_route', vid=v.id) }}"
-                  onsubmit="return confirm('למחוק את הסרטון?');">
-              <button type="submit" class="ofir-video-delete">מחיקה</button>
-            </form>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="muted">עוד אין סרטונים.</p>
-  {% endif %}
-  {% if session.get('is_admin') %}
-    <form method="POST" action="{{ url_for('add_ofir_video_route') }}" enctype="multipart/form-data" class="ofir-add-pair-form">
-      <input type="file" name="video" accept="video/*" required>
-      <button type="submit" class="btn-gold">הוספת סרטון</button>
-    </form>
-  {% endif %}
 
   <script>
     (function () {

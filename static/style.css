@@ -332,6 +332,14 @@ tr:last-child td { border-bottom: none; }
 .perk-card .perk-icon { font-size: 24px; margin-bottom: 8px; }
 .perk-card .perk-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
 .perk-card .perk-desc { font-size: 12px; color: #888; line-height: 1.4; }
+.perk-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-color: var(--gold);
+  transition: box-shadow .15s, transform .15s;
+}
+.perk-card-link:hover { box-shadow: 0 4px 14px rgba(244,185,66,.35); transform: translateY(-1px); }
 
 .ofir-video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 16px; }
 .ofir-video-tile { position: relative; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.1); }

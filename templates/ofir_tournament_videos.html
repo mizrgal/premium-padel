@@ -1,0 +1,32 @@
+{% extends "base_app.html" %}
+{% block title %}סרטונים – {{ title }}{% endblock %}
+{% block content %}
+  <a href="{{ url_for('ofir_tournament') }}" class="muted" style="font-size:13px; display:inline-block; margin-bottom:12px;">← חזרה לעמוד הטורניר</a>
+
+  <h1>🎥 סרטונים של אופיר</h1>
+
+  {% if videos %}
+    <div class="ofir-video-grid">
+      {% for v in videos %}
+        <div class="ofir-video-tile">
+          <video controls preload="metadata" src="{{ v.video_url }}"></video>
+          {% if session.get('is_admin') %}
+            <form method="POST" action="{{ url_for('delete_ofir_video_route', vid=v.id) }}"
+                  onsubmit="return confirm('למחוק את הסרטון?');">
+              <button type="submit" class="ofir-video-delete">מחיקה</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">עוד אין סרטונים.</p>
+  {% endif %}
+
+  {% if session.get('is_admin') %}
+    <form method="POST" action="{{ url_for('add_ofir_video_route') }}" enctype="multipart/form-data" class="ofir-add-pair-form">
+      <input type="file" name="video" accept="video/*" required>
+      <button type="submit" class="btn-gold">הוספת סרטון</button>
+    </form>
+  {% endif %}
+{% endblock %}

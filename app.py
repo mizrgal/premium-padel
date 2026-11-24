@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.1"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.2"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2433,8 +2433,15 @@ def ofir_tournament():
         pairs_count=OFIR_TOURNAMENT_PAIRS,
         prizes=OFIR_TOURNAMENT_PRIZES,
         perks=OFIR_TOURNAMENT_PERKS,
-        videos=list_ofir_videos(),
     )
+
+
+@app.route("/ofir-tournament/videos")
+def ofir_tournament_videos():
+    """No login required to view - אופיר's video clips, on their own page (linked from a tile
+    in the hype page's perks grid). Upload/delete below are admin-only."""
+    return render_template(
+        "ofir_tournament_videos.html", title=OFIR_TOURNAMENT_TITLE, videos=list_ofir_videos())
 
 
 @app.route("/ofir-tournament/videos", methods=["POST"])
@@ -2443,21 +2450,21 @@ def add_ofir_video_route():
     file = request.files.get("video")
     if not file or not file.filename:
         flash("נא לבחור קובץ וידאו", "error")
-        return redirect(url_for("ofir_tournament"))
+        return redirect(url_for("ofir_tournament_videos"))
     url, error = upload_ofir_video(file)
     if error:
         flash(error, "error")
-        return redirect(url_for("ofir_tournament"))
+        return redirect(url_for("ofir_tournament_videos"))
     add_ofir_video(url)
     flash("הסרטון נוסף", "success")
-    return redirect(url_for("ofir_tournament"))
+    return redirect(url_for("ofir_tournament_videos"))
 
 
 @app.route("/ofir-tournament/videos/<vid>/delete", methods=["POST"])
 @admin_required
 def delete_ofir_video_route(vid):
     delete_ofir_video(vid)
-    return redirect(url_for("ofir_tournament"))
+    return redirect(url_for("ofir_tournament_videos"))
 
 
 @app.route("/ofir-tournament/entry")
