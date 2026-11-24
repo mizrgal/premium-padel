@@ -335,11 +335,15 @@ tr:last-child td { border-bottom: none; }
 .perk-card-link {
   display: block;
   text-decoration: none;
-  color: inherit;
-  border-color: var(--gold);
+  background: linear-gradient(135deg, var(--navy) 0%, #0c0c18 100%);
+  border: 1.5px solid var(--gold);
+  box-shadow: 0 4px 18px rgba(244,185,66,.3);
   transition: box-shadow .15s, transform .15s;
 }
-.perk-card-link:hover { box-shadow: 0 4px 14px rgba(244,185,66,.35); transform: translateY(-1px); }
+.perk-card-link .perk-icon { font-size: 30px; }
+.perk-card-link .perk-title { color: var(--gold); font-size: 15px; }
+.perk-card-link .perk-desc { color: #d8d8e4; }
+.perk-card-link:hover { box-shadow: 0 6px 22px rgba(244,185,66,.5); transform: translateY(-2px); }
 
 .ofir-video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 16px; }
 .ofir-video-tile { position: relative; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
