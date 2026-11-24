@@ -275,31 +275,13 @@ tr:last-child td { border-bottom: none; }
 .vote-leader-pct { font-size: 13px; color: #888; margin-top: 2px; }
 
 /* אופיר עמרם enlistment tournament - hype/info page */
-.ofir-row { display: flex; align-items: stretch; gap: 14px; margin-bottom: 22px; }
-.ofir-flyer-side {
-  width: 130px;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 20px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.3);
-}
-.ofir-flyer-left { object-position: left center; }
-.ofir-flyer-right { object-position: right center; }
-.ofir-flyer-mobile { display: none; }
-@media (max-width: 860px) {
-  .ofir-flyer-side { display: none; }
-  .ofir-flyer-mobile { display: block; }
-}
-
 .ofir-hero {
   background: linear-gradient(135deg, var(--navy) 0%, #0c0c18 100%);
   color: #fff;
   border-radius: 20px;
   padding: 36px 20px 28px;
   text-align: center;
-  margin-bottom: 0;
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 22px;
 }
 .ofir-photo {
   width: 136px;
