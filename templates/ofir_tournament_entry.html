@@ -49,6 +49,14 @@
             {% endfor %}
           </select>
         </form>
+        <details class="ofir-edit-pair">
+          <summary draggable="false" title="עריכת שמות">✏️</summary>
+          <form method="POST" action="{{ url_for('edit_ofir_pair_route', pid=p.id) }}" class="ofir-edit-pair-form">
+            <input type="text" name="player1_name" value="{{ p.player1_name or p.name }}" placeholder="שחקן/ית 1" required draggable="false">
+            <input type="text" name="player2_name" value="{{ p.player2_name or '' }}" placeholder="שחקן/ית 2" draggable="false">
+            <button type="submit" class="btn-gold" draggable="false">שמירה</button>
+          </form>
+        </details>
         <form method="POST" action="{{ url_for('delete_ofir_pair_route', pid=p.id) }}"
               onsubmit="return confirm('למחוק לגמרי את {{ p.name }} מרשימת הזוגות? (לא רק מהבית - מכל הטורניר. כדי רק להזיז לבית אחר/להחזיר לרשימה יש להשתמש בתפריט השיבוץ.)');">
           <button type="submit" class="remove-pair" draggable="false" title="מחיקה סופית מהרשימה">✕</button>
@@ -65,7 +73,7 @@
              {% if pairs|length >= pairs_count %}disabled{% endif %}>
       <button type="submit" class="btn-gold">הוספת זוג</button>
     </form>
-    <p class="hint">גוררים זוג מהרשימה לבית הרצוי, ומעלים תמונה לכל שחקן/ית עם 📷. {{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
+    <p class="hint">גוררים זוג מהרשימה לבית הרצוי, מעלים תמונה לכל שחקן/ית עם 📷, ומחליפים שמות עם ✏️. {{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
   {% else %}
     <p class="hint">{{ pairs|length }}/{{ pairs_count }} זוגות נרשמו.</p>
   {% endif %}

@@ -794,3 +794,10 @@ a.stat-row:hover { background: var(--bg); }
   .slot-toggle { flex-wrap: wrap; }
   .slot-toggle button { flex: 1 1 45%; }
 }
+
+.ofir-edit-pair { position: relative; }
+.ofir-edit-pair > summary { list-style: none; cursor: pointer; font-size: 14px; padding: 2px 4px; }
+.ofir-edit-pair > summary::-webkit-details-marker { display: none; }
+.ofir-edit-pair-form { position: absolute; z-index: 20; top: 100%; inset-inline-end: 0; display: flex; flex-direction: column; gap: 6px; width: 190px; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+.ofir-edit-pair-form input { width: 100%; padding: 6px 8px; font-size: 13px; }
+.ofir-edit-pair-form button { padding: 6px; font-size: 13px; }

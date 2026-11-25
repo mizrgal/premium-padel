@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.6"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.7"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2545,7 +2545,13 @@ def edit_ofir_pair_route(pid):
     if not player1_name:
         flash("יש להזין לפחות שם אחד לזוג", "error")
         return redirect(url_for("ofir_tournament_entry"))
+    current = next((p for p in list_ofir_pairs() if str(p["id"]) == str(pid)), None)
     update_ofir_pair_names(pid, player1_name, player2_name)
+    # a replaced player shouldn't keep the previous player's photo
+    if current:
+        for num, new_name in ((1, player1_name), (2, player2_name)):
+            if (current.get(f"player{num}_name") or "") != (new_name or "") and current.get(f"player{num}_photo_url"):
+                set_ofir_pair_photo(pid, num, None)
     return redirect(url_for("ofir_tournament_entry"))
 
 
