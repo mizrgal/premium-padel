@@ -419,7 +419,7 @@ tr:last-child td { border-bottom: none; }
 .ofir-pair-card.dragging { opacity: .4; }
 
 .ofir-pair-players { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-.ofir-player-row { display: flex; align-items: center; gap: 6px; }
+.ofir-player-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ofir-player-photo {
   width: 26px;
   height: 26px;
@@ -436,7 +436,15 @@ tr:last-child td { border-bottom: none; }
   color: #bbb;
   border: 1px dashed var(--border);
 }
-.ofir-player-name { font-size: 13px; font-weight: 600; }
+.ofir-player-name {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .ofir-player-photo-form { margin: 0; display: inline-flex; }
 .ofir-photo-btn {

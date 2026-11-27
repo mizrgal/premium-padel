@@ -16,7 +16,7 @@
         {% else %}
           <span class="ofir-player-photo ofir-player-photo-empty">🙂</span>
         {% endif %}
-        <span class="ofir-player-name">{{ pname }}</span>
+        <span class="ofir-player-name" title="{{ pname }}">{{ pname }}</span>
         {% if session.get('is_admin') %}
           <form method="POST" action="{{ url_for('upload_ofir_pair_photo_route', pid=p.id) }}"
                 enctype="multipart/form-data" class="ofir-player-photo-form">
