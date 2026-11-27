@@ -7,6 +7,58 @@
     📅 {{ tournament.date }}{% if tournament.location %} · 📍 {{ tournament.location }}{% endif %}
   </p>
 
+  {% macro tally_rows(counts, candidates, total) %}
+    <div class="vote-tally" style="margin-bottom:6px;">
+      {% for p in candidates %}
+        {% set count = counts.get(p.id, 0) %}
+        {% set pct = (count / total * 100) if total else 0 %}
+        <div class="vote-tally-row">
+          <div class="vote-tally-label">{{ pair_name_text(p) }}</div>
+          <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
+          <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endmacro %}
+  {% macro leader_card(label, icon, leader_list, tone) %}
+    <div class="vote-leader-card {{ tone }}">
+      <div class="vote-leader-label">{{ icon }} {{ label }}</div>
+      {% if leader_list %}
+        {% if leader_list|length > 1 %}
+          <div class="vote-leader-name muted" style="font-size:12px; font-weight:700; margin-bottom:2px;">תיקו:</div>
+        {% endif %}
+        <div class="vote-leader-name">
+          {% for item in leader_list %}{{ pair_name_text(item.pair) }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+        </div>
+        <div class="vote-leader-pct">{{ leader_list[0].count }} קולות ({{ leader_list[0].pct }}%){% if leader_list|length > 1 %} כל אחד{% endif %}</div>
+      {% else %}
+        <div class="vote-leader-name muted">אין עדיין הצבעות</div>
+      {% endif %}
+    </div>
+  {% endmacro %}
+
+  {% if admin_preview and total_votes %}
+    <div class="about-card" style="padding:14px 20px; margin-bottom:18px; border-color: var(--gold);">
+      <p class="hint" style="margin:0 0 12px; font-weight:700;">
+        👁️ תצוגה מקדימה למנהל בלבד — ההצבעה עדיין פתוחה ואף אחד אחר לא רואה את זה. ({{ total_votes }} הצבעות)
+      </p>
+      {% if groups %}
+        <div class="vote-summary-grid" style="margin-bottom:10px;">
+          {{ leader_card('המנצח הגדול', '🏆', leaders.winner, 'gold') }}
+          {{ leader_card('מקום שני בטורניר', '🥈', leaders.runner_up, 'silver') }}
+        </div>
+        <div class="vote-summary-grid">
+          {% for g, gpairs in groups %}
+            {{ leader_card('בית ' ~ g ~ ' — מקום ראשון', '🥇', leaders.groups[g].first, 'gold') }}
+            {{ leader_card('בית ' ~ g ~ ' — מקום שני', '🥈', leaders.groups[g].second, 'silver') }}
+          {% endfor %}
+        </div>
+      {% else %}
+        {{ tally_rows(tally, pairs, total_votes) }}
+      {% endif %}
+    </div>
+  {% endif %}
+
   {% if tournament.status != 'full' %}
     <p class="hint" style="margin-top:16px;">
       {% if tournament.status == 'open' %}
@@ -18,37 +70,7 @@
       {% endif %}
     </p>
   {% elif tournament.votes_revealed and groups %}
-    {% macro tally_rows(counts, candidates, total) %}
-      <div class="vote-tally" style="margin-bottom:6px;">
-        {% for p in candidates %}
-          {% set count = counts.get(p.id, 0) %}
-          {% set pct = (count / total * 100) if total else 0 %}
-          <div class="vote-tally-row">
-            <div class="vote-tally-label">{{ pair_name_text(p) }}</div>
-            <div class="vote-tally-bar-bg"><div class="vote-tally-bar" style="width:{{ pct }}%;"></div></div>
-            <div class="vote-tally-count">{{ count }} ({{ pct|round(0,'floor')|int }}%)</div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endmacro %}
     <p class="hint" style="margin:10px 0 16px;">ההצבעה נסגרה. הנה התוצאות (ללא פרטי המצביעים):</p>
-
-    {% macro leader_card(label, icon, leader_list, tone) %}
-      <div class="vote-leader-card {{ tone }}">
-        <div class="vote-leader-label">{{ icon }} {{ label }}</div>
-        {% if leader_list %}
-          {% if leader_list|length > 1 %}
-            <div class="vote-leader-name muted" style="font-size:12px; font-weight:700; margin-bottom:2px;">תיקו:</div>
-          {% endif %}
-          <div class="vote-leader-name">
-            {% for item in leader_list %}{{ pair_name_text(item.pair) }}{% if not loop.last %}<br>{% endif %}{% endfor %}
-          </div>
-          <div class="vote-leader-pct">{{ leader_list[0].count }} קולות ({{ leader_list[0].pct }}%){% if leader_list|length > 1 %} כל אחד{% endif %}</div>
-        {% else %}
-          <div class="vote-leader-name muted">אין עדיין הצבעות</div>
-        {% endif %}
-      </div>
-    {% endmacro %}
 
     <div class="vote-summary-grid" style="margin-bottom:10px;">
       {{ leader_card('המנצח הגדול', '🏆', leaders.winner, 'gold') }}

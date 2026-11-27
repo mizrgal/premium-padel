@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.23.0"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.23.1"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
@@ -2268,7 +2268,8 @@ def tournament_vote(tid):
     group_tally, final_tally, complete_votes = {}, {}, 0
     leaders = None
     pairs_by_id = {p["id"]: p for p in pairs}
-    if tournament.get("votes_revealed"):
+    admin_preview = session.get("is_admin") and not tournament.get("votes_revealed")
+    if tournament.get("votes_revealed") or admin_preview:
         votes = list_votes(tid)
         total_votes = len(votes)
         for v in votes:
@@ -2293,7 +2294,7 @@ def tournament_vote(tid):
         pairs_by_id=pairs_by_id,
         my_picks=(my_vote or {}).get("picks") or {},
         group_tally=group_tally, final_tally=final_tally, complete_votes=complete_votes,
-        leaders=leaders,
+        leaders=leaders, admin_preview=admin_preview,
     )
 
 
