@@ -418,6 +418,8 @@ tr:last-child td { border-bottom: none; }
 .ofir-pair-card[draggable="true"] { cursor: grab; }
 .ofir-pair-card.dragging { opacity: .4; }
 
+.ofir-pair-controls { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; }
+
 .ofir-pair-players { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .ofir-player-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ofir-player-photo {
@@ -502,10 +504,13 @@ tr:last-child td { border-bottom: none; }
   border-radius: 7px;
 }
 
-.ofir-groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.ofir-groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 22px; }
+@media (min-width: 640px) {
+  .ofir-groups-grid { grid-template-columns: repeat(3, 1fr); }
+}
 .ofir-group-box { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; }
-.ofir-group-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
-.ofir-group-title .count { color: #888; font-weight: 600; font-size: 12px; }
+.ofir-group-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 20px; margin-bottom: 10px; }
+.ofir-group-title .count { color: #888; font-weight: 600; font-size: 14px; }
 .ofir-group-cards {
   display: flex;
   flex-direction: column;
