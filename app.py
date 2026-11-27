@@ -27,7 +27,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 85 * 1024 * 1024  # request cap - big enough for אופיר videos
 # (avatars/pair photos still self-limit to AVATAR_MAX_BYTES well under this)
 
-APP_VERSION = "1.22.8"  # bump on every change so it's visible which deploy is live
+APP_VERSION = "1.22.9"  # bump on every change so it's visible which deploy is live
 app.jinja_env.globals["APP_VERSION"] = APP_VERSION
 
 SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")

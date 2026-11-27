@@ -439,8 +439,8 @@ tr:last-child td { border-bottom: none; }
 .ofir-player-name {
   font-size: 13px;
   font-weight: 600;
-  min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 46px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -472,6 +472,24 @@ tr:last-child td { border-bottom: none; }
   flex-shrink: 0;
 }
 .ofir-pair-card .remove-pair:hover { color: var(--red); background: none; }
+
+.ofir-return-form { margin: 0; flex-shrink: 0; }
+.ofir-return-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  font-size: 15px;
+  border-radius: 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--navy);
+  cursor: pointer;
+}
+.ofir-return-btn:hover { background: #fffdf4; border-color: var(--gold); }
 
 .ofir-assign-form { margin: 0; flex-shrink: 0; }
 .ofir-assign-form select {

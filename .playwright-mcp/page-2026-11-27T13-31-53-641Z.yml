@@ -1,0 +1,535 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - generic [ref=f7e3]:
+      - link "Premium Padel 🎾" [ref=f7e5] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f7e6]: v1.22.8
+    - generic [ref=f7e7]:
+      - link "🥇 עמוד הבית" [ref=f7e8] [cursor=pointer]:
+        - /url: /
+      - link "🏠 כל הטורנירים" [ref=f7e9] [cursor=pointer]:
+        - /url: /tournaments
+      - link "🎖️ טורניר אופיר" [ref=f7e10] [cursor=pointer]:
+        - /url: /ofir-tournament
+      - link "👑 מלך הקרוס" [ref=f7e11] [cursor=pointer]:
+        - /url: /king-cross-vote
+      - link "🎾 אמריקנו" [ref=f7e12] [cursor=pointer]:
+        - /url: /americano
+      - link "🔮 מי ינצח?" [ref=f7e13] [cursor=pointer]:
+        - /url: /americano/predict
+      - link "+ טורניר חדש" [ref=f7e14] [cursor=pointer]:
+        - /url: /tournaments/new
+      - link "משתמשים" [ref=f7e15] [cursor=pointer]:
+        - /url: /admin/users
+      - link "+ משתמש חדש" [ref=f7e16] [cursor=pointer]:
+        - /url: /admin/users/new
+      - link "👤 admin" [ref=f7e17] [cursor=pointer]:
+        - /url: /profile
+      - link "התנתקות" [ref=f7e18] [cursor=pointer]:
+        - /url: /logout
+  - generic [ref=f7e19]:
+    - link "← חזרה לעמוד הטורניר" [ref=f7e20] [cursor=pointer]:
+      - /url: /ofir-tournament
+    - heading "🏟️ כניסה לטורניר" [level=1] [ref=f7e21]
+    - paragraph [ref=f7e22]: טורניר פאדל לכבוד הגיוס של אופיר עמרם
+    - generic [ref=f7e23]:
+      - textbox "שם שחקן/ית 1" [disabled] [ref=f7e24]
+      - textbox "שם שחקן/ית 2 (אופציונלי)" [disabled] [ref=f7e25]
+      - button "הוספת זוג" [ref=f7e26] [cursor=pointer]
+    - paragraph [ref=f7e27]: גוררים זוג מהרשימה לבית הרצוי, מעלים תמונה לכל שחקן/ית עם 📷, ומחליפים שמות עם ✏️. 24/24 זוגות נרשמו.
+    - generic [ref=f7e28]:
+      - generic [ref=f7e29]:
+        - generic [ref=f7e30]:
+          - generic [ref=f7e31]:
+            - generic "ניקולס דובין" [ref=f7e32]
+            - generic "העלאת תמונה" [ref=f7e34] [cursor=pointer]: 📷
+          - generic [ref=f7e35]:
+            - generic [ref=f7e36]: 🙂
+            - generic "בן לבל" [ref=f7e37]
+            - generic "העלאת תמונה" [ref=f7e39] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e41]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e42]:
+          - generic "✏️" [ref=f7e43] [cursor=pointer]
+        - button "✕" [ref=f7e45] [cursor=pointer]
+      - generic [ref=f7e46]:
+        - generic [ref=f7e47]:
+          - generic [ref=f7e48]:
+            - generic "עומר הראל" [ref=f7e49]
+            - generic "העלאת תמונה" [ref=f7e51] [cursor=pointer]: 📷
+          - generic [ref=f7e52]:
+            - generic "איתי חיזגילוב" [ref=f7e53]
+            - generic "העלאת תמונה" [ref=f7e55] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e57]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e58]:
+          - generic "✏️" [ref=f7e59] [cursor=pointer]
+        - button "✕" [ref=f7e61] [cursor=pointer]
+      - generic [ref=f7e62]:
+        - generic [ref=f7e63]:
+          - generic [ref=f7e64]:
+            - generic "רן קטן" [ref=f7e65]
+            - generic "העלאת תמונה" [ref=f7e67] [cursor=pointer]: 📷
+          - generic [ref=f7e68]:
+            - generic "משה ואזן" [ref=f7e69]
+            - generic "העלאת תמונה" [ref=f7e71] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e73]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e74]:
+          - generic "✏️" [ref=f7e75] [cursor=pointer]
+        - button "✕" [ref=f7e77] [cursor=pointer]
+      - generic [ref=f7e78]:
+        - generic [ref=f7e79]:
+          - generic [ref=f7e80]:
+            - generic "מור דהן" [ref=f7e81]
+            - generic "העלאת תמונה" [ref=f7e83] [cursor=pointer]: 📷
+          - generic [ref=f7e84]:
+            - generic "בר הנדרי" [ref=f7e85]
+            - generic "העלאת תמונה" [ref=f7e87] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e89]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e90]:
+          - generic "✏️" [ref=f7e91] [cursor=pointer]
+        - button "✕" [ref=f7e93] [cursor=pointer]
+      - generic [ref=f7e94]:
+        - generic [ref=f7e95]:
+          - generic [ref=f7e96]:
+            - generic "ניב נסימי" [ref=f7e97]
+            - generic "העלאת תמונה" [ref=f7e99] [cursor=pointer]: 📷
+          - generic [ref=f7e100]:
+            - generic "אופק טבקמן" [ref=f7e101]
+            - generic "העלאת תמונה" [ref=f7e103] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e105]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e106]:
+          - generic "✏️" [ref=f7e107] [cursor=pointer]
+        - button "✕" [ref=f7e109] [cursor=pointer]
+      - generic [ref=f7e110]:
+        - generic [ref=f7e111]:
+          - generic [ref=f7e112]:
+            - generic "שי פוליטי" [ref=f7e113]
+            - generic "העלאת תמונה" [ref=f7e115] [cursor=pointer]: 📷
+          - generic [ref=f7e116]:
+            - generic "אלי אסולין" [ref=f7e117]
+            - generic "העלאת תמונה" [ref=f7e119] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e121]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e122]:
+          - generic "✏️" [ref=f7e123] [cursor=pointer]
+        - button "✕" [ref=f7e125] [cursor=pointer]
+      - generic [ref=f7e126]:
+        - generic [ref=f7e127]:
+          - generic [ref=f7e128]:
+            - generic [ref=f7e129]: 🙂
+            - generic "דניאל גויצו" [ref=f7e130]
+            - generic "העלאת תמונה" [ref=f7e132] [cursor=pointer]: 📷
+          - generic [ref=f7e133]:
+            - generic "אלעד לוי" [ref=f7e134]
+            - generic "העלאת תמונה" [ref=f7e136] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e138]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e139]:
+          - generic "✏️" [ref=f7e140] [cursor=pointer]
+        - button "✕" [ref=f7e142] [cursor=pointer]
+      - generic [ref=f7e143]:
+        - generic [ref=f7e144]:
+          - generic [ref=f7e145]:
+            - generic "איתי שדה" [ref=f7e146]
+            - generic "העלאת תמונה" [ref=f7e148] [cursor=pointer]: 📷
+          - generic [ref=f7e149]:
+            - generic [ref=f7e150]: 🙂
+            - generic "דוד מדו" [ref=f7e151]
+            - generic "העלאת תמונה" [ref=f7e153] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e155]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e156]:
+          - generic "✏️" [ref=f7e157] [cursor=pointer]
+        - button "✕" [ref=f7e159] [cursor=pointer]
+      - generic [ref=f7e160]:
+        - generic [ref=f7e161]:
+          - generic [ref=f7e162]:
+            - generic "גל מזרחי" [ref=f7e163]
+            - generic "העלאת תמונה" [ref=f7e165] [cursor=pointer]: 📷
+          - generic [ref=f7e166]:
+            - generic "אלירן קוריצונר" [ref=f7e167]
+            - generic "העלאת תמונה" [ref=f7e169] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e171]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e172]:
+          - generic "✏️" [ref=f7e173] [cursor=pointer]
+        - button "✕" [ref=f7e175] [cursor=pointer]
+      - generic [ref=f7e176]:
+        - generic [ref=f7e177]:
+          - generic [ref=f7e178]:
+            - generic "אלי לוי" [ref=f7e179]
+            - generic "העלאת תמונה" [ref=f7e181] [cursor=pointer]: 📷
+          - generic [ref=f7e182]:
+            - generic [ref=f7e183]: 🙂
+            - generic "צחי גרינפפן" [ref=f7e184]
+            - generic "העלאת תמונה" [ref=f7e186] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e188]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e189]:
+          - generic "✏️" [ref=f7e190] [cursor=pointer]
+        - button "✕" [ref=f7e192] [cursor=pointer]
+      - generic [ref=f7e193]:
+        - generic [ref=f7e194]:
+          - generic [ref=f7e195]:
+            - generic [ref=f7e196]: 🙂
+            - generic "ירדן פאר" [ref=f7e197]
+            - generic "העלאת תמונה" [ref=f7e199] [cursor=pointer]: 📷
+          - generic [ref=f7e200]:
+            - generic "רביב טורונטו" [ref=f7e201]
+            - generic "העלאת תמונה" [ref=f7e203] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e205]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e206]:
+          - generic "✏️" [ref=f7e207] [cursor=pointer]
+        - button "✕" [ref=f7e209] [cursor=pointer]
+      - generic [ref=f7e210]:
+        - generic [ref=f7e211]:
+          - generic [ref=f7e212]:
+            - generic "אורי טל" [ref=f7e213]
+            - generic "העלאת תמונה" [ref=f7e215] [cursor=pointer]: 📷
+          - generic [ref=f7e216]:
+            - generic "יובל דיאז" [ref=f7e217]
+            - generic "העלאת תמונה" [ref=f7e219] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e221]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e222]:
+          - generic "✏️" [ref=f7e223] [cursor=pointer]
+        - button "✕" [ref=f7e225] [cursor=pointer]
+      - generic [ref=f7e226]:
+        - generic [ref=f7e227]:
+          - generic [ref=f7e228]:
+            - generic [ref=f7e229]: 🙂
+            - generic "אלעד מרננבך" [ref=f7e230]
+            - generic "העלאת תמונה" [ref=f7e232] [cursor=pointer]: 📷
+          - generic [ref=f7e233]:
+            - generic [ref=f7e234]: 🙂
+            - generic "נדב דהן" [ref=f7e235]
+            - generic "העלאת תמונה" [ref=f7e237] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e239]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e240]:
+          - generic "✏️" [ref=f7e241] [cursor=pointer]
+        - button "✕" [ref=f7e243] [cursor=pointer]
+      - generic [ref=f7e244]:
+        - generic [ref=f7e245]:
+          - generic [ref=f7e246]:
+            - generic "ברק גילהר" [ref=f7e247]
+            - generic "העלאת תמונה" [ref=f7e249] [cursor=pointer]: 📷
+          - generic [ref=f7e250]:
+            - generic [ref=f7e251]: 🙂
+            - generic "יהב לוי" [ref=f7e252]
+            - generic "העלאת תמונה" [ref=f7e254] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e256]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e257]:
+          - generic "✏️" [ref=f7e258] [cursor=pointer]
+        - button "✕" [ref=f7e260] [cursor=pointer]
+      - generic [ref=f7e261]:
+        - generic [ref=f7e262]:
+          - generic [ref=f7e263]:
+            - generic [ref=f7e264]: 🙂
+            - generic "דני ויישטיין" [ref=f7e265]
+            - generic "העלאת תמונה" [ref=f7e267] [cursor=pointer]: 📷
+          - generic [ref=f7e268]:
+            - generic [ref=f7e269]: 🙂
+            - generic "אלון ק" [ref=f7e270]
+            - generic "העלאת תמונה" [ref=f7e272] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e274]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e275]:
+          - generic "✏️" [ref=f7e276] [cursor=pointer]
+        - button "✕" [ref=f7e278] [cursor=pointer]
+      - generic [ref=f7e279]:
+        - generic [ref=f7e280]:
+          - generic [ref=f7e281]:
+            - generic [ref=f7e282]: 🙂
+            - generic "ירדן לוי" [ref=f7e283]
+            - generic "העלאת תמונה" [ref=f7e285] [cursor=pointer]: 📷
+          - generic [ref=f7e286]:
+            - generic [ref=f7e287]: 🙂
+            - generic "אופק אנקווה" [ref=f7e288]
+            - generic "העלאת תמונה" [ref=f7e290] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e292]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e293]:
+          - generic "✏️" [ref=f7e294] [cursor=pointer]
+        - button "✕" [ref=f7e296] [cursor=pointer]
+      - generic [ref=f7e297]:
+        - generic [ref=f7e298]:
+          - generic [ref=f7e299]:
+            - generic "יובל צחובר" [ref=f7e300]
+            - generic "העלאת תמונה" [ref=f7e302] [cursor=pointer]: 📷
+          - generic [ref=f7e303]:
+            - generic [ref=f7e304]: 🙂
+            - generic "אדיר ברבי" [ref=f7e305]
+            - generic "העלאת תמונה" [ref=f7e307] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e309]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e310]:
+          - generic "✏️" [ref=f7e311] [cursor=pointer]
+        - button "✕" [ref=f7e313] [cursor=pointer]
+      - generic [ref=f7e314]:
+        - generic [ref=f7e315]:
+          - generic [ref=f7e316]:
+            - generic [ref=f7e317]: 🙂
+            - generic "ליאור כחלון" [ref=f7e318]
+            - generic "העלאת תמונה" [ref=f7e320] [cursor=pointer]: 📷
+          - generic [ref=f7e321]:
+            - generic [ref=f7e322]: 🙂
+            - generic "טל חן" [ref=f7e323]
+            - generic "העלאת תמונה" [ref=f7e325] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e327]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e328]:
+          - generic "✏️" [ref=f7e329] [cursor=pointer]
+        - button "✕" [ref=f7e331] [cursor=pointer]
+      - generic [ref=f7e332]:
+        - generic [ref=f7e333]:
+          - generic [ref=f7e334]:
+            - generic [ref=f7e335]: 🙂
+            - generic "אשלי ברניב" [ref=f7e336]
+            - generic "העלאת תמונה" [ref=f7e338] [cursor=pointer]: 📷
+          - generic [ref=f7e339]:
+            - generic [ref=f7e340]: 🙂
+            - generic "עומר מינה" [ref=f7e341]
+            - generic "העלאת תמונה" [ref=f7e343] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e345]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e346]:
+          - generic "✏️" [ref=f7e347] [cursor=pointer]
+        - button "✕" [ref=f7e349] [cursor=pointer]
+      - generic [ref=f7e350]:
+        - generic [ref=f7e351]:
+          - generic [ref=f7e352]:
+            - generic "רן סוויסה" [ref=f7e353]
+            - generic "העלאת תמונה" [ref=f7e355] [cursor=pointer]: 📷
+          - generic [ref=f7e356]:
+            - generic [ref=f7e357]: 🙂
+            - generic "אופק שפירא" [ref=f7e358]
+            - generic "העלאת תמונה" [ref=f7e360] [cursor=pointer]: 📷
+        - combobox "שיבוץ לבית" [ref=f7e362]:
+          - option "ללא שיבוץ" [selected]
+          - option "בית 1"
+          - option "בית 2"
+          - option "בית 3"
+          - option "בית 4"
+          - option "בית 5"
+          - option "בית 6"
+        - group [ref=f7e363]:
+          - generic "✏️" [ref=f7e364] [cursor=pointer]
+        - button "✕" [ref=f7e366] [cursor=pointer]
+    - generic [ref=f7e367]:
+      - generic [ref=f7e368]:
+        - generic [ref=f7e369]:
+          - text: בית 1
+          - generic [ref=f7e370]: 4/4
+        - generic [ref=f7e371]:
+          - generic [ref=f7e372]:
+            - generic [ref=f7e373]:
+              - generic [ref=f7e374]:
+                - generic "אופיר עמרם" [ref=f7e375]
+                - generic "העלאת תמונה" [ref=f7e377] [cursor=pointer]: 📷
+              - generic [ref=f7e378]:
+                - generic "דניאל אליעזר" [ref=f7e379]
+                - generic "העלאת תמונה" [ref=f7e381] [cursor=pointer]: 📷
+            - combobox "שיבוץ לבית" [ref=f7e383]:
+              - option "ללא שיבוץ"
+              - option "בית 1" [selected]
+              - option "בית 2"
+              - option "בית 3"
+              - option "בית 4"
+              - option "בית 5"
+              - option "בית 6"
+            - group [ref=f7e384]:
+              - generic "✏️" [ref=f7e385] [cursor=pointer]
+            - button "✕" [ref=f7e387] [cursor=pointer]
+          - generic [ref=f7e388]:
+            - generic [ref=f7e389]:
+              - generic [ref=f7e390]:
+                - generic "מיכאל יוסף" [ref=f7e391]
+                - generic "העלאת תמונה" [ref=f7e393] [cursor=pointer]: 📷
+              - generic [ref=f7e394]:
+                - generic "נמרוד שליש" [ref=f7e395]
+                - generic "העלאת תמונה" [ref=f7e397] [cursor=pointer]: 📷
+            - combobox "שיבוץ לבית" [ref=f7e399]:
+              - option "ללא שיבוץ"
+              - option "בית 1" [selected]
+              - option "בית 2"
+              - option "בית 3"
+              - option "בית 4"
+              - option "בית 5"
+              - option "בית 6"
+            - group [ref=f7e400]:
+              - generic "✏️" [ref=f7e401] [cursor=pointer]
+            - button "✕" [ref=f7e403] [cursor=pointer]
+          - generic [ref=f7e404]:
+            - generic [ref=f7e405]:
+              - generic [ref=f7e406]:
+                - generic "יוחאי זיו" [ref=f7e407]
+                - generic "העלאת תמונה" [ref=f7e409] [cursor=pointer]: 📷
+              - generic [ref=f7e410]:
+                - generic "חנן ממן" [ref=f7e411]
+                - generic "העלאת תמונה" [ref=f7e413] [cursor=pointer]: 📷
+            - combobox "שיבוץ לבית" [ref=f7e415]:
+              - option "ללא שיבוץ"
+              - option "בית 1" [selected]
+              - option "בית 2"
+              - option "בית 3"
+              - option "בית 4"
+              - option "בית 5"
+              - option "בית 6"
+            - group [ref=f7e416]:
+              - generic "✏️" [ref=f7e417] [cursor=pointer]
+            - button "✕" [ref=f7e419] [cursor=pointer]
+          - generic [ref=f7e420]:
+            - generic [ref=f7e421]:
+              - generic [ref=f7e422]:
+                - generic "אור רוח" [ref=f7e423]
+                - generic "העלאת תמונה" [ref=f7e425] [cursor=pointer]: 📷
+              - generic [ref=f7e426]:
+                - generic "עידן כץ" [ref=f7e427]
+                - generic "העלאת תמונה" [ref=f7e429] [cursor=pointer]: 📷
+            - combobox "שיבוץ לבית" [ref=f7e431]:
+              - option "ללא שיבוץ"
+              - option "בית 1" [selected]
+              - option "בית 2"
+              - option "בית 3"
+              - option "בית 4"
+              - option "בית 5"
+              - option "בית 6"
+            - group [ref=f7e432]:
+              - generic "✏️" [ref=f7e433] [cursor=pointer]
+            - button "✕" [ref=f7e435] [cursor=pointer]
+      - generic [ref=f7e437]:
+        - text: בית 2
+        - generic [ref=f7e438]: 0/4
+      - generic [ref=f7e441]:
+        - text: בית 3
+        - generic [ref=f7e442]: 0/4
+      - generic [ref=f7e445]:
+        - text: בית 4
+        - generic [ref=f7e446]: 0/4
+      - generic [ref=f7e449]:
+        - text: בית 5
+        - generic [ref=f7e450]: 0/4
+      - generic [ref=f7e453]:
+        - text: בית 6
+        - generic [ref=f7e454]: 0/4
